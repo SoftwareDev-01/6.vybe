@@ -124,7 +124,7 @@ function Profile() {
             </div>
 
             <div className='w-full min-h-[100vh]  flex justify-center'>
-                <div className='w-full max-w-[900px] flex flex-col items-center rounded-t-[30px] bg-white relative gap-[20px] pt-[30px] pb-[100px]'>
+                <div className='w-full max-w-[900px] flex flex-col items-center rounded-t-[30px] bg-[#070726] relative gap-[20px] pt-[30px] pb-[100px]'>
                     {profileData?._id==userData._id && <div className='w-[90%] max-w-[500px] h-[80px] bg-[white] rounded-full flex justify-center items-center gap-[10px]' >
 
                 <div className={`${postType == "posts" ? "bg-black text-white shadow-2xl shadow-black" : ""}  w-[28%] h-[80%] flex justify-center items-center text-[19px] font-semibold hover:bg-black rounded-full hover:text-white cursor-pointer hover:shadow-2xl hover:shadow-black`} onClick={() => setPostType("posts")}>Posts</div>
