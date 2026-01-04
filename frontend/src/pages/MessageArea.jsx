@@ -23,13 +23,28 @@ function MessageArea() {
   const [input, setInput] = useState("");
   const [frontendImage, setFrontendImage] = useState(null);
   const [backendImage, setBackendImage] = useState(null);
+  const [isTyping, setIsTyping] = useState(false);
+
   const imageInput = useRef(null);
+  const bottomRef = useRef(null);
+  const typingTimeout = useRef(null);
+
+  /* ================= SAFETY ================= */
+
+  if (!selectedUser) {
+    return (
+      <div className="h-screen bg-black flex items-center justify-center text-gray-400">
+        Select a conversation
+      </div>
+    );
+  }
 
   /* ================= IMAGE ================= */
 
   const handleImage = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     setBackendImage(file);
     setFrontendImage(URL.createObjectURL(file));
   };
@@ -51,7 +66,9 @@ function MessageArea() {
         { withCredentials: true }
       );
 
-      dispatch(setMessages((prev) => [...prev, res.data]));
+      dispatch(setMessages([...messages, res.data]));
+      socket?.emit("stopTyping", { to: selectedUser._id });
+
       setInput("");
       setBackendImage(null);
       setFrontendImage(null);
@@ -86,11 +103,101 @@ function MessageArea() {
     if (!socket) return;
 
     socket.on("newMessage", (msg) => {
-      dispatch(setMessages((prev) => [...prev, msg]));
+      dispatch(setMessages([...messages, msg]));
+
+      if (msg.sender !== userData._id) {
+        socket.emit("messageSeen", {
+          messageId: msg._id,
+          to: msg.sender,
+        });
+      }
     });
 
-    return () => socket.off("newMessage");
-  }, [socket, dispatch]);
+    socket.on("typing", () => setIsTyping(true));
+    socket.on("stopTyping", () => setIsTyping(false));
+
+    socket.on("messageSeen", ({ messageId }) => {
+      dispatch(
+        setMessages(
+          messages.map((m) =>
+            m._id === messageId ? { ...m, status: "seen" } : m
+          )
+        )
+      );
+    });
+
+    socket.on("messageDeleted", ({ messageId }) => {
+      dispatch(
+        setMessages(
+          messages.map((m) =>
+            m._id === messageId ? { ...m, isDeleted: true } : m
+          )
+        )
+      );
+    });
+
+    return () => {
+      socket.off("newMessage");
+      socket.off("typing");
+      socket.off("stopTyping");
+      socket.off("messageSeen");
+      socket.off("messageDeleted");
+    };
+  }, [socket, messages, dispatch, userData]);
+
+  /* ================= TYPING HANDLER ================= */
+
+  const handleTyping = (e) => {
+    setInput(e.target.value);
+    socket?.emit("typing", { to: selectedUser._id });
+
+    clearTimeout(typingTimeout.current);
+    typingTimeout.current = setTimeout(() => {
+      socket?.emit("stopTyping", { to: selectedUser._id });
+    }, 900);
+  };
+
+  /* ================= DELETE MESSAGE ================= */
+
+  const handleDeleteMessage = async (messageId, type) => {
+    try {
+      await axios.post(
+        `${serverUrl}/api/message/delete`,
+        { messageId, type },
+        { withCredentials: true }
+      );
+
+      dispatch(
+        setMessages(
+          messages.map((m) =>
+            m._id === messageId
+              ? type === "everyone"
+                ? { ...m, isDeleted: true }
+                : {
+                    ...m,
+                    deletedFor: [...(m.deletedFor || []), userData._id],
+                  }
+              : m
+          )
+        )
+      );
+
+      if (type === "everyone") {
+        socket?.emit("deleteMessage", {
+          messageId,
+          to: selectedUser._id,
+        });
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  /* ================= AUTO SCROLL ================= */
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isTyping]);
 
   /* ================= UI ================= */
 
@@ -100,7 +207,7 @@ function MessageArea() {
       <div className="h-[64px] flex items-center gap-4 px-4 border-b border-gray-800">
         <MdOutlineKeyboardBackspace
           className="text-white w-6 h-6 cursor-pointer"
-          onClick={() => navigate("/")}
+          onClick={() => navigate(-1)}
         />
 
         <div
@@ -118,20 +225,36 @@ function MessageArea() {
             {selectedUser.userName}
           </p>
           <p className="text-xs text-gray-400">
-            {selectedUser.name}
+            {isTyping ? "Typing..." : selectedUser.name}
           </p>
         </div>
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-        {messages.map((msg, index) =>
+        {messages.map((msg) =>
           msg.sender === userData._id ? (
-            <SenderMessage key={index} message={msg} />
+            <SenderMessage
+              key={msg._id}
+              message={msg}
+              onDelete={handleDeleteMessage}
+            />
           ) : (
-            <ReceiverMessage key={index} message={msg} />
+            <ReceiverMessage
+              key={msg._id}
+              message={msg}
+              onDelete={handleDeleteMessage}
+            />
           )
         )}
+
+        {isTyping && (
+          <p className="text-xs text-gray-400">
+            {selectedUser.userName} is typing…
+          </p>
+        )}
+
+        <div ref={bottomRef} />
       </div>
 
       {/* Input */}
@@ -158,12 +281,8 @@ function MessageArea() {
           type="text"
           placeholder="Message…"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
-          className="
-            flex-1 bg-transparent
-            text-white text-sm
-            outline-none
-          "
+          onChange={handleTyping}
+          className="flex-1 bg-transparent text-white text-sm outline-none"
         />
 
         {(input || frontendImage) && (
@@ -177,15 +296,6 @@ function MessageArea() {
           >
             <IoMdSend className="text-white w-5 h-5" />
           </button>
-        )}
-
-        {frontendImage && (
-          <div className="absolute bottom-[72px] right-4 w-24 h-24 rounded-xl overflow-hidden">
-            <img
-              src={frontendImage}
-              className="w-full h-full object-cover"
-            />
-          </div>
         )}
       </form>
     </div>

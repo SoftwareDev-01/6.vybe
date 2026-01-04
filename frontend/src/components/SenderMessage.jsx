@@ -1,16 +1,44 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
+import { MdDelete } from "react-icons/md";
 
-function SenderMessage({ message }) {
+function SenderMessage({ message, onDelete }) {
   const { userData } = useSelector((state) => state.user);
   const scrollRef = useRef(null);
+  const [showActions, setShowActions] = useState(false);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [message.message, message.image]);
+  }, [message.message, message.image, message.isDeleted]);
+
+  /* 🗑 Deleted for everyone */
+  if (message.isDeleted) {
+    return (
+      <div className="flex justify-end max-w-[75%] ml-auto">
+        <p className="text-xs italic text-gray-400">
+          You deleted this message
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div ref={scrollRef} className="flex justify-end items-end gap-2 max-w-[75%] ml-auto">
+    <div
+      ref={scrollRef}
+      className="flex justify-end items-end gap-2 max-w-[75%] ml-auto"
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
+    >
+      {/* Delete Button */}
+      {showActions && onDelete && (
+        <button
+          onClick={() => onDelete(message._id, "everyone")}
+          className="text-gray-400 hover:text-red-400 transition"
+        >
+          <MdDelete size={16} />
+        </button>
+      )}
+
       {/* Bubble */}
       <div
         className="
@@ -19,7 +47,8 @@ function SenderMessage({ message }) {
           px-4 py-2
           rounded-2xl rounded-br-md
           shadow-sm
-          flex flex-col gap-2
+          flex flex-col gap-1
+          max-w-full
         "
       >
         {message.image && (
@@ -35,6 +64,24 @@ function SenderMessage({ message }) {
             {message.message}
           </p>
         )}
+
+        {/* Timestamp + Status */}
+        <div className="flex justify-end gap-2 text-[10px] text-white/80 mt-1">
+          <span>
+            {new Date(message.createdAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+
+          <span>
+            {message.status === "seen"
+              ? "Seen"
+              : message.status === "delivered"
+              ? "Delivered"
+              : "Sent"}
+          </span>
+        </div>
       </div>
 
       {/* Avatar */}

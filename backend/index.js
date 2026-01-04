@@ -1,8 +1,8 @@
 import express from "express";
 import dotenv from "dotenv";
-import connectDb from "./config/db.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import connectDb from "./config/db.js";
 
 import authRouter from "./routes/auth.routes.js";
 import userRouter from "./routes/user.routes.js";
@@ -15,17 +15,27 @@ import { app, server } from "./socket.js";
 
 dotenv.config();
 
-const port = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 
 /* ======================
-   🌐 CORS (PRO SAFE)
+   🌐 CORS (FINAL FIX)
 ====================== */
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://six-vybe-1-yyrg.onrender.com",
+  "https://six-vybe-4kho.onrender.com",
+];
+
 app.use(
   cors({
-    origin: [
-      "https://six-vybe-1-yyrg.onrender.com",
-      "http://localhost:5173",
-    ],
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS blocked"));
+      }
+    },
     credentials: true,
   })
 );
@@ -51,18 +61,21 @@ app.use("/api/message", messageRouter);
    ❤️ Health Check
 ====================== */
 app.get("/health", (_, res) => {
-  res.status(200).json({ status: "OK", uptime: process.uptime() });
+  res.status(200).json({
+    status: "OK",
+    uptime: process.uptime(),
+  });
 });
 
 /* ======================
-   🚀 Server + DB
+   🚀 Start Server
 ====================== */
-server.listen(port, async () => {
+server.listen(PORT, async () => {
   try {
     await connectDb();
-    console.log(`✅ Server running on port ${port}`);
-  } catch (error) {
-    console.error("❌ DB connection failed", error);
+    console.log(`✅ Server running on port ${PORT}`);
+  } catch (err) {
+    console.error("❌ DB Connection Failed", err);
     process.exit(1);
   }
 });

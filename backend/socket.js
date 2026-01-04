@@ -7,65 +7,70 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-   origin: [
+    origin: [
       "http://localhost:5173",
       "https://six-vybe-1-yyrg.onrender.com",
+      "https://six-vybe-4kho.onrender.com",
     ],
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
 
-/* userId -> socketId */
 const userSocketMap = {};
 
-/* 🔹 Helper: get receiver socket id */
-export const getSocketId = (userId) => {
-  return userSocketMap[userId];
-};
+/* 🔹 Helper */
+export const getSocketId = (userId) => userSocketMap[userId];
 
 io.on("connection", (socket) => {
   const userId = socket.handshake.query.userId;
 
-  /* 🔹 Save user socket */
   if (userId) {
     userSocketMap[userId] = socket.id;
   }
 
-  /* 🔹 Send online users */
+  /* 🟢 Online users */
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
-  /* =============================
-     ✍️ Typing indicator
-  ============================== */
+  /* ================= TYPING ================= */
 
   socket.on("typing", ({ to }) => {
-    const receiverSocketId = getSocketId(to);
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("typing", {
-        from: userId,
-      });
+    const receiverSocket = getSocketId(to);
+    if (receiverSocket) {
+      io.to(receiverSocket).emit("typing");
     }
   });
 
   socket.on("stopTyping", ({ to }) => {
-    const receiverSocketId = getSocketId(to);
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("stopTyping", {
-        from: userId,
-      });
+    const receiverSocket = getSocketId(to);
+    if (receiverSocket) {
+      io.to(receiverSocket).emit("stopTyping");
     }
   });
 
-  /* =============================
-     🔌 Disconnect
-  ============================== */
+  /* ================= MESSAGE SEEN ================= */
+
+  socket.on("messageSeen", ({ messageId, to }) => {
+    const senderSocket = getSocketId(to);
+    if (senderSocket) {
+      io.to(senderSocket).emit("messageSeen", { messageId });
+    }
+  });
+
+  /* ================= MESSAGE DELETE ================= */
+
+  socket.on("deleteMessage", ({ messageId, to }) => {
+    const receiverSocket = getSocketId(to);
+    if (receiverSocket) {
+      io.to(receiverSocket).emit("messageDeleted", { messageId });
+    }
+  });
+
+  /* ================= DISCONNECT ================= */
 
   socket.on("disconnect", () => {
-    if (userId) {
-      delete userSocketMap[userId];
-      io.emit("getOnlineUsers", Object.keys(userSocketMap));
-    }
+    delete userSocketMap[userId];
+    io.emit("getOnlineUsers", Object.keys(userSocketMap));
   });
 });
 

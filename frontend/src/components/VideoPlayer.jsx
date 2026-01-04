@@ -3,28 +3,46 @@ import { FiVolume2, FiVolumeX } from "react-icons/fi";
 
 function VideoPlayer({ media }) {
   const videoRef = useRef(null);
-  const [mute, setMute] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(true);
 
-  const handleClick = () => {
-    if (isPlaying) {
-      videoRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      videoRef.current.play();
+  const [muted, setMuted] = useState(true);      // Instagram default
+  const [isPlaying, setIsPlaying] = useState(false);
+  const userPausedRef = useRef(false);           // 👈 prevents observer fight
+
+  /* ================= USER INTERACTION ================= */
+
+  const handleTogglePlay = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.paused) {
+      video.play();
       setIsPlaying(true);
+      userPausedRef.current = false;
+    } else {
+      video.pause();
+      setIsPlaying(false);
+      userPausedRef.current = true;
     }
   };
 
+  const toggleMute = (e) => {
+    e.stopPropagation(); // 👈 don't trigger play/pause
+    setMuted((prev) => !prev);
+  };
+
+  /* ================= VIEWPORT AUTOPLAY ================= */
+
   useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        const video = videoRef.current;
-        if (!video) return;
-
         if (entry.isIntersecting) {
-          video.play();
-          setIsPlaying(true);
+          if (!userPausedRef.current) {
+            video.play();
+            setIsPlaying(true);
+          }
         } else {
           video.pause();
           setIsPlaying(false);
@@ -33,27 +51,34 @@ function VideoPlayer({ media }) {
       { threshold: 0.6 }
     );
 
-    if (videoRef.current) observer.observe(videoRef.current);
+    observer.observe(video);
 
-    return () => {
-      if (videoRef.current) observer.unobserve(videoRef.current);
-    };
+    return () => observer.disconnect();
   }, []);
 
+  /* ================= UI ================= */
+
   return (
-    <div className="relative w-full h-full rounded-xl overflow-hidden bg-black group">
-      {/* 🎥 Video */}
+    <div
+      onClick={handleTogglePlay}
+      className="
+        relative w-full h-full
+        bg-black overflow-hidden
+        group cursor-pointer
+      "
+    >
+      {/* 🎥 VIDEO */}
       <video
         ref={videoRef}
         src={media}
-        autoPlay
         loop
-        muted={mute}
-        onClick={handleClick}
-        className="w-full h-full object-cover"
+        muted={muted}
+        playsInline
+        preload="metadata"
+        className="absolute inset-0 w-full h-full object-cover"
       />
 
-      {/* ▶️ Play/Pause Feedback */}
+      {/* ▶️ PLAY OVERLAY (Instagram style) */}
       {!isPlaying && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/40">
           <span className="text-white text-sm font-semibold">
@@ -62,9 +87,9 @@ function VideoPlayer({ media }) {
         </div>
       )}
 
-      {/* 🔊 Volume Toggle */}
+      {/* 🔊 VOLUME BUTTON */}
       <button
-        onClick={() => setMute((prev) => !prev)}
+        onClick={toggleMute}
         className="
           absolute bottom-3 right-3
           bg-black/50 backdrop-blur
@@ -74,10 +99,10 @@ function VideoPlayer({ media }) {
           transition
         "
       >
-        {!mute ? (
-          <FiVolume2 className="w-5 h-5" />
-        ) : (
+        {muted ? (
           <FiVolumeX className="w-5 h-5" />
+        ) : (
+          <FiVolume2 className="w-5 h-5" />
         )}
       </button>
     </div>

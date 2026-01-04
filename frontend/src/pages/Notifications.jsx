@@ -15,7 +15,7 @@ function Notifications() {
 
   /* 🔹 Extract unread ids safely */
   const unreadIds = useMemo(
-    () => notificationData.filter(n => !n.isRead).map(n => n._id),
+    () => notificationData.filter((n) => !n.isRead).map((n) => n._id),
     [notificationData]
   );
 
@@ -58,28 +58,40 @@ function Notifications() {
   }, [unreadIds]);
 
   return (
-    <div className="w-full h-screen bg-black overflow-auto">
-      {/* Header */}
-      <div className="w-full h-[80px] flex items-center gap-[20px] px-[20px] lg:hidden">
+    <div className="w-full h-full bg-black flex flex-col">
+
+      {/* 🔹 Sticky Header */}
+      <div
+        className="
+          sticky top-0 z-30
+          h-[64px]
+          flex items-center gap-4
+          px-4
+          bg-black/80 backdrop-blur
+          border-b border-gray-800
+        "
+      >
         <MdOutlineKeyboardBackspace
-          className="text-white cursor-pointer w-[25px] h-[25px]"
-          onClick={() => navigate("/")}
+          className="text-white w-6 h-6 cursor-pointer lg:hidden"
+          onClick={() => navigate(-1)}
         />
-        <h1 className="text-white text-[20px] font-semibold">
+
+        <h1 className="text-white text-base font-semibold">
           Notifications
         </h1>
       </div>
 
-      {/* Content */}
-      <div className="w-full flex flex-col gap-[16px] px-[12px] pb-[20px]">
+      {/* 🔹 Scrollable Content */}
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
+
         {notificationData.length === 0 && (
-          <div className="text-gray-400 text-center mt-[40px]">
+          <div className="text-gray-400 text-center mt-20 text-sm">
             No notifications yet
           </div>
         )}
 
         {notificationData.map((noti) => (
-          <NotificationCard noti={noti} key={noti._id} />
+          <NotificationCard key={noti._id} noti={noti} />
         ))}
       </div>
     </div>

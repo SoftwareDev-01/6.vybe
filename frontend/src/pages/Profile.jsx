@@ -9,8 +9,8 @@ import { setProfileData, setUserData } from "../redux/userSlice";
 import { setSelectedUser } from "../redux/messageSlice";
 
 import dp from "../assets/dp.webp";
-import Nav from "../components/Nav";
 import FollowButton from "../components/FollowButton";
+import ProfilePostGrid from "../components/ProfilePostGrid";
 import Post from "../components/Post";
 
 function Profile() {
@@ -22,6 +22,7 @@ function Profile() {
   const { postData } = useSelector((s) => s.post);
 
   const [postType, setPostType] = useState("posts");
+  const [activePost, setActivePost] = useState(null); // 🔥 MODAL STATE
 
   /* ================= FETCH PROFILE ================= */
 
@@ -52,19 +53,32 @@ function Profile() {
     fetchProfile();
   }, [userName]);
 
-  if (!profileData) return null;
+  if (!profileData || !userData) return null;
 
   const isOwnProfile = profileData._id === userData._id;
+
+  /* ================= SAFE FILTERS ================= */
+
+  const userPosts = postData.filter(
+    (p) =>
+      p.author === profileData._id ||
+      p.author?._id === profileData._id
+  );
+
+  const savedPosts = postData.filter((p) =>
+    userData.saved.includes(p._id)
+  );
 
   /* ================= UI ================= */
 
   return (
     <div className="min-h-screen bg-black text-white">
+
       {/* HEADER */}
       <div className="h-[56px] flex items-center justify-between px-4 border-b border-gray-800">
         <MdOutlineKeyboardBackspace
           className="w-6 h-6 cursor-pointer"
-          onClick={() => navigate("/")}
+          onClick={() => navigate(-1)}
         />
 
         <span className="text-sm font-semibold">
@@ -84,7 +98,6 @@ function Profile() {
       {/* PROFILE INFO */}
       <div className="px-4 py-4">
         <div className="flex gap-4">
-          {/* Avatar */}
           <div className="w-[86px] h-[86px] rounded-full overflow-hidden">
             <img
               src={profileData.profileImage || dp}
@@ -93,7 +106,6 @@ function Profile() {
             />
           </div>
 
-          {/* Stats + Bio */}
           <div className="flex-1">
             <div className="flex justify-between text-center">
               <div>
@@ -188,24 +200,46 @@ function Profile() {
         </div>
       )}
 
-      {/* CONTENT */}
-      <div className="flex flex-col items-center pb-20">
-        <Nav />
+      {/* GRID */}
+      <div className="pb-20">
+        {postType === "posts" && (
+          <ProfilePostGrid
+            posts={userPosts}
+            onPostClick={(post) => setActivePost(post)}
+          />
+        )}
 
-        {postType === "posts" &&
-          postData
-            .filter((p) => p.author?._id === profileData._id)
-            .map((post) => (
-              <Post key={post._id} post={post} />
-            ))}
-
-        {postType === "saved" &&
-          postData
-            .filter((p) => userData.saved.includes(p._id))
-            .map((post) => (
-              <Post key={post._id} post={post} />
-            ))}
+        {postType === "saved" && (
+          <ProfilePostGrid
+            posts={savedPosts}
+            onPostClick={(post) => setActivePost(post)}
+          />
+        )}
       </div>
+
+      {/* ================= MODAL ================= */}
+      {activePost && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
+          onClick={() => setActivePost(null)}
+        >
+          {/* Stop click bubbling */}
+          <div
+            className="relative w-full max-w-[500px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Post post={activePost} />
+
+            {/* Close Button */}
+            <button
+              className="absolute -top-10 right-0 text-white text-2xl"
+              onClick={() => setActivePost(null)}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

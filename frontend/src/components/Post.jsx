@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { GoHeart, GoHeartFill } from "react-icons/go";
 import { MdOutlineComment, MdOutlineBookmarkBorder } from "react-icons/md";
 import { GoBookmarkFill } from "react-icons/go";
@@ -21,6 +21,7 @@ function Post({ post }) {
 
   const [showComment, setShowComment] = useState(false);
   const [message, setMessage] = useState("");
+  const [showHeart, setShowHeart] = useState(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -28,13 +29,22 @@ function Post({ post }) {
   /* ================= API ================= */
 
   const handleLike = async () => {
+    if (post.likes.includes(userData._id)) return;
+
     const res = await axios.get(
       `${serverUrl}/api/post/like/${post._id}`,
       { withCredentials: true }
     );
+
     dispatch(
       setPostData(postData.map((p) => (p._id === post._id ? res.data : p)))
     );
+  };
+
+  const handleDoubleTap = () => {
+    setShowHeart(true);
+    handleLike();
+    setTimeout(() => setShowHeart(false), 800);
   };
 
   const handleComment = async () => {
@@ -43,6 +53,7 @@ function Post({ post }) {
       { message },
       { withCredentials: true }
     );
+
     dispatch(
       setPostData(postData.map((p) => (p._id === post._id ? res.data : p)))
     );
@@ -70,27 +81,23 @@ function Post({ post }) {
       );
     });
 
-    socket?.on("commentedPost", (data) => {
-      dispatch(
-        setPostData(
-          postData.map((p) =>
-            p._id === data.postId ? { ...p, comments: data.comments } : p
-          )
-        )
-      );
-    });
-
-    return () => {
-      socket?.off("likedPost");
-      socket?.off("commentedPost");
-    };
+    return () => socket?.off("likedPost");
   }, [socket, postData, dispatch]);
 
   /* ================= UI ================= */
 
   return (
-    <div className="w-full max-w-[470px] mx-auto bg-[#0f0f0f] border border-gray-800 rounded-xl overflow-hidden">
-      {/* 🔹 Header */}
+    <article
+      className="
+        w-full 
+        bg-[#0f0f0f] 
+        border border-gray-800 
+        rounded-xl 
+        overflow-hidden
+        shadow-[0_4px_20px_rgba(0,0,0,0.4)]
+      "
+    >
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3">
         <div
           className="flex items-center gap-3 cursor-pointer"
@@ -110,21 +117,38 @@ function Post({ post }) {
         )}
       </div>
 
-      {/* 🔹 Media */}
-      <div className="w-full bg-black">
+      {/* Media */}
+      <div
+        onDoubleClick={handleDoubleTap}
+        className="relative w-full bg-black aspect-[4/5] overflow-hidden"
+      >
         {post.mediaType === "image" && (
           <img
             src={post.media}
-            className="w-full max-h-[600px] object-cover"
+            className="absolute inset-0 w-full h-full object-cover"
           />
         )}
 
         {post.mediaType === "video" && (
           <VideoPlayer media={post.media} />
         )}
+
+        {/* ❤️ Double Tap Heart */}
+        {showHeart && (
+          <GoHeartFill
+            className="
+              absolute top-1/2 left-1/2
+              -translate-x-1/2 -translate-y-1/2
+              text-white
+              w-24 h-24
+              animate-heart
+              drop-shadow-xl
+            "
+          />
+        )}
       </div>
 
-      {/* 🔹 Actions */}
+      {/* Actions */}
       <div className="flex items-center justify-between px-4 py-3 text-white">
         <div className="flex items-center gap-4">
           <button onClick={handleLike}>
@@ -149,12 +173,12 @@ function Post({ post }) {
         </button>
       </div>
 
-      {/* 🔹 Likes */}
-      <div className="px-4 text-sm text-white font-semibold">
+      {/* Likes */}
+      <div className="px-4 text-sm font-semibold text-white">
         {post.likes.length} likes
       </div>
 
-      {/* 🔹 Caption */}
+      {/* Caption */}
       {post.caption && (
         <div className="px-4 py-2 text-sm text-gray-200">
           <span className="font-semibold mr-2">
@@ -164,21 +188,10 @@ function Post({ post }) {
         </div>
       )}
 
-      {/* 🔹 Comments */}
+      {/* Comments */}
       {showComment && (
         <div className="px-4 py-3 border-t border-gray-800">
-          <div className="space-y-3 max-h-[200px] overflow-y-auto">
-            {post.comments.map((c, i) => (
-              <p key={i} className="text-sm text-gray-300">
-                <span className="font-semibold text-white mr-2">
-                  {c.author.userName}
-                </span>
-                {c.message}
-              </p>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-3 mt-3">
+          <div className="flex items-center gap-3">
             <img
               src={userData.profileImage || dp}
               className="w-8 h-8 rounded-full"
@@ -198,7 +211,7 @@ function Post({ post }) {
           </div>
         </div>
       )}
-    </div>
+    </article>
   );
 }
 

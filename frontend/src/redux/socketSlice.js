@@ -5,36 +5,27 @@ const socketSlice = createSlice({
   initialState: {
     socket: null,
     onlineUsers: [],
-    typingUsers: {}, // { userId: true }
   },
   reducers: {
-    /* Set socket instance */
+    /* ✅ Set socket ONLY once */
     setSocket: (state, action) => {
-      state.socket = action.payload;
+      if (!state.socket) {
+        state.socket = action.payload;
+      }
     },
 
-    /* Online users list */
+    /* 🟢 Online users */
     setOnlineUsers: (state, action) => {
       state.onlineUsers = action.payload;
     },
 
-    /* Typing indicator ON */
-    setTyping: (state, action) => {
-      const { userId } = action.payload;
-      state.typingUsers[userId] = true;
-    },
-
-    /* Typing indicator OFF */
-    removeTyping: (state, action) => {
-      const { userId } = action.payload;
-      delete state.typingUsers[userId];
-    },
-
-    /* Reset everything on logout */
+    /* 🔄 Reset on logout */
     resetSocket: (state) => {
+      if (state.socket) {
+        state.socket.disconnect();
+      }
       state.socket = null;
       state.onlineUsers = [];
-      state.typingUsers = {};
     },
   },
 });
@@ -42,8 +33,6 @@ const socketSlice = createSlice({
 export const {
   setSocket,
   setOnlineUsers,
-  setTyping,
-  removeTyping,
   resetSocket,
 } = socketSlice.actions;
 

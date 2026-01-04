@@ -5,14 +5,18 @@ function RightHome() {
   return (
     <aside
       className="
-        hidden lg:block
-        w-[25%] h-screen
+        hidden lg:flex
+        flex-col
+        w-full
+        h-full
         bg-[#0f0f0f]
         border-l border-gray-800
-        sticky top-0
       "
     >
-      <Messages />
+      {/* Messages scroll internally */}
+      <div className="flex-1 overflow-y-auto">
+        <Messages />
+      </div>
     </aside>
   );
 }

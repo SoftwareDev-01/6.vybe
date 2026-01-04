@@ -16,7 +16,8 @@ function Feed() {
   const navigate = useNavigate();
 
   return (
-    <div className="w-full lg:w-[50%] min-h-screen bg-[#0f0f0f] lg:border-x border-gray-800">
+    // 🔥 FULL WIDTH – CENTER AREA CONTROLS WIDTH
+    <main className="w-full min-h-screen bg-[#0f0f0f]">
 
       {/* 🔹 Mobile Top Bar */}
       <div className="lg:hidden sticky top-0 z-20 bg-[#0f0f0f] border-b border-gray-800">
@@ -42,7 +43,7 @@ function Feed() {
         </div>
       </div>
 
-      {/* 🔹 Stories Section */}
+      {/* 🔹 STORIES */}
       <div className="w-full overflow-x-auto flex items-center gap-4 px-4 py-4 border-b border-gray-800">
         <StoryDp
           userName="Your Story"
@@ -60,15 +61,15 @@ function Feed() {
         ))}
       </div>
 
-      {/* 🔹 Feed Posts */}
-      <div className="flex flex-col items-center gap-6 px-3 py-6 pb-28">
+      {/* 🔹 POSTS */}
+      <div className="flex flex-col gap-6 px-3 py-6 pb-28">
         <Nav />
 
         {postData?.map((post, index) => (
           <Post post={post} key={index} />
         ))}
       </div>
-    </div>
+    </main>
   );
 }
 

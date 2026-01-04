@@ -14,18 +14,34 @@ function Loops() {
       <div className="fixed top-0 left-0 w-full h-[64px] flex items-center gap-4 px-5 z-50 bg-black/70 backdrop-blur">
         <MdOutlineKeyboardBackspace
           className="text-white w-6 h-6 cursor-pointer"
-          onClick={() => navigate("/")}
+          onClick={() => navigate(-1)}
         />
         <h1 className="text-white text-lg font-semibold">Loops</h1>
       </div>
 
-      {/* Reels Container */}
-      <div className="w-full max-w-[500px] h-full pt-[64px] overflow-y-scroll snap-y snap-mandatory scrollbar-hide">
-        {loopData.map((loop, index) => (
-          <div key={loop._id || index} className="h-screen snap-start flex justify-center">
-            <LoopCard loop={loop} />
-          </div>
-        ))}
+      {/* Reels Wrapper */}
+      <div className="flex justify-center w-full pt-[64px]">
+        {/* Portrait Reels Container */}
+        <div
+          className="
+            h-[calc(100vh-64px)]
+            aspect-[9/16]
+            max-w-[460px]
+            w-full
+            overflow-y-scroll
+            snap-y snap-mandatory
+            scrollbar-hide
+          "
+        >
+          {loopData.map((loop, index) => (
+            <div
+              key={loop._id || index}
+              className="h-full snap-start flex items-center justify-center"
+            >
+              <LoopCard loop={loop} />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
