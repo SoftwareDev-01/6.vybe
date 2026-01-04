@@ -3,17 +3,22 @@ import { createSlice } from "@reduxjs/toolkit";
 const postSlice = createSlice({
   name: "post",
   initialState: {
-    postData: [],
+    postData: [], // always an array
   },
   reducers: {
     /* Load all posts */
     setPostData: (state, action) => {
-      state.postData = action.payload;
+      // ✅ SUPPORT FUNCTIONAL UPDATES
+      if (typeof action.payload === "function") {
+        state.postData = action.payload(state.postData);
+      } else {
+        state.postData = action.payload;
+      }
     },
 
     /* Add new post (upload) */
     addPost: (state, action) => {
-      state.postData.unshift(action.payload); // Instagram: newest on top
+      state.postData.unshift(action.payload); // newest on top
     },
 
     /* Update a single post (like, comment) */

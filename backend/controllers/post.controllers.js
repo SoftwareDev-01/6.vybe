@@ -187,3 +187,52 @@ export const saved = async (req, res) => {
     return res.status(500).json({ message: "Save failed" });
   }
 };
+
+/* ================= DELETE COMMENT ================= */
+export const deleteComment = async (req, res) => {
+  try {
+    const { postId, commentId } = req.params;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // find comment
+    const comment = post.comments.find(
+      (c) => c._id.toString() === commentId
+    );
+
+    if (!comment) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    // only author of comment OR post author can delete
+    if (
+      comment.author.toString() !== req.userId.toString() &&
+      post.author.toString() !== req.userId.toString()
+    ) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
+    // remove comment
+    post.comments = post.comments.filter(
+      (c) => c._id.toString() !== commentId
+    );
+
+    await post.save();
+    await post.populate("comments.author", "name userName profileImage");
+
+    // 🔴 emit realtime update
+    io.emit("commentedPost", {
+      postId: post._id,
+      comments: post.comments,
+    });
+
+    // ✅ return updated comments array
+    return res.status(200).json(post.comments);
+  } catch (error) {
+    console.error("deleteComment ERROR:", error);
+    return res.status(500).json({ message: "Delete comment failed" });
+  }
+};

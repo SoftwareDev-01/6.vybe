@@ -22,47 +22,42 @@ function Profile() {
   const { postData } = useSelector((s) => s.post);
 
   const [postType, setPostType] = useState("posts");
-  const [activePost, setActivePost] = useState(null); // 🔥 MODAL STATE
+  const [activePost, setActivePost] = useState(null);
 
   /* ================= FETCH PROFILE ================= */
 
   const fetchProfile = async () => {
-    try {
-      const res = await axios.get(
-        `${serverUrl}/api/user/getProfile/${userName}`,
-        { withCredentials: true }
-      );
-      dispatch(setProfileData(res.data));
-    } catch (error) {
-      console.log(error);
-    }
+    const res = await axios.get(
+      `${serverUrl}/api/user/getProfile/${userName}`,
+      { withCredentials: true }
+    );
+    dispatch(setProfileData(res.data));
   };
 
   const handleLogout = async () => {
-    try {
-      await axios.get(`${serverUrl}/api/auth/signout`, {
-        withCredentials: true,
-      });
-      dispatch(setUserData(null));
-    } catch (error) {
-      console.log(error);
-    }
+    await axios.get(`${serverUrl}/api/auth/signout`, {
+      withCredentials: true,
+    });
+    dispatch(setUserData(null));
   };
 
   useEffect(() => {
     fetchProfile();
   }, [userName]);
 
+  /* ================= LOCK BODY SCROLL ================= */
+
+  useEffect(() => {
+    document.body.style.overflow = activePost ? "hidden" : "auto";
+    return () => (document.body.style.overflow = "auto");
+  }, [activePost]);
+
   if (!profileData || !userData) return null;
 
   const isOwnProfile = profileData._id === userData._id;
 
-  /* ================= SAFE FILTERS ================= */
-
   const userPosts = postData.filter(
-    (p) =>
-      p.author === profileData._id ||
-      p.author?._id === profileData._id
+    (p) => p.author?._id === profileData._id
   );
 
   const savedPosts = postData.filter((p) =>
@@ -80,11 +75,9 @@ function Profile() {
           className="w-6 h-6 cursor-pointer"
           onClick={() => navigate(-1)}
         />
-
         <span className="text-sm font-semibold">
           {profileData.userName}
         </span>
-
         {isOwnProfile && (
           <span
             className="text-sm text-blue-500 cursor-pointer"
@@ -95,60 +88,30 @@ function Profile() {
         )}
       </div>
 
-      {/* PROFILE INFO */}
+      {/* PROFILE */}
       <div className="px-4 py-4">
         <div className="flex gap-4">
-          <div className="w-[86px] h-[86px] rounded-full overflow-hidden">
-            <img
-              src={profileData.profileImage || dp}
-              alt="profile"
-              className="w-full h-full object-cover"
-            />
-          </div>
-
+          <img
+            src={profileData.profileImage || dp}
+            className="w-[86px] h-[86px] rounded-full object-cover"
+          />
           <div className="flex-1">
             <div className="flex justify-between text-center">
-              <div>
-                <p className="text-sm font-semibold">
-                  {profileData.posts.length}
-                </p>
-                <p className="text-xs text-gray-400">Posts</p>
-              </div>
-              <div>
-                <p className="text-sm font-semibold">
-                  {profileData.followers.length}
-                </p>
-                <p className="text-xs text-gray-400">Followers</p>
-              </div>
-              <div>
-                <p className="text-sm font-semibold">
-                  {profileData.following.length}
-                </p>
-                <p className="text-xs text-gray-400">Following</p>
-              </div>
+              <Stat label="Posts" value={profileData.posts.length} />
+              <Stat label="Followers" value={profileData.followers.length} />
+              <Stat label="Following" value={profileData.following.length} />
             </div>
-
             <div className="mt-3 text-sm">
               <p className="font-medium">{profileData.name}</p>
-              {profileData.profession && (
-                <p className="text-xs text-gray-400">
-                  {profileData.profession}
-                </p>
-              )}
-              {profileData.bio && (
-                <p className="mt-1 leading-snug">
-                  {profileData.bio}
-                </p>
-              )}
+              {profileData.bio && <p className="mt-1">{profileData.bio}</p>}
             </div>
           </div>
         </div>
 
-        {/* ACTION BUTTONS */}
         <div className="flex gap-2 mt-4">
           {isOwnProfile ? (
             <button
-              className="flex-1 h-8 rounded-md border border-gray-700 text-sm"
+              className="flex-1 h-8 border border-gray-700 rounded-md text-sm"
               onClick={() => navigate("/editprofile")}
             >
               Edit profile
@@ -156,12 +119,12 @@ function Profile() {
           ) : (
             <>
               <FollowButton
-                tailwind="flex-1 h-8 rounded-md bg-white text-black text-sm"
+                tailwind="flex-1 h-8 bg-white text-black rounded-md text-sm"
                 targetUserId={profileData._id}
                 onFollowChange={fetchProfile}
               />
               <button
-                className="flex-1 h-8 rounded-md border border-gray-700 text-sm"
+                className="flex-1 h-8 border border-gray-700 rounded-md text-sm"
                 onClick={() => {
                   dispatch(setSelectedUser(profileData));
                   navigate("/messageArea");
@@ -177,62 +140,45 @@ function Profile() {
       {/* TABS */}
       {isOwnProfile && (
         <div className="flex justify-around border-t border-gray-800 text-sm">
-          <button
-            className={`py-3 ${
-              postType === "posts"
-                ? "border-b-2 border-white font-semibold"
-                : "text-gray-400"
-            }`}
-            onClick={() => setPostType("posts")}
-          >
+          <Tab active={postType === "posts"} onClick={() => setPostType("posts")}>
             Posts
-          </button>
-          <button
-            className={`py-3 ${
-              postType === "saved"
-                ? "border-b-2 border-white font-semibold"
-                : "text-gray-400"
-            }`}
-            onClick={() => setPostType("saved")}
-          >
+          </Tab>
+          <Tab active={postType === "saved"} onClick={() => setPostType("saved")}>
             Saved
-          </button>
+          </Tab>
         </div>
       )}
 
       {/* GRID */}
       <div className="pb-20">
-        {postType === "posts" && (
-          <ProfilePostGrid
-            posts={userPosts}
-            onPostClick={(post) => setActivePost(post)}
-          />
-        )}
-
-        {postType === "saved" && (
-          <ProfilePostGrid
-            posts={savedPosts}
-            onPostClick={(post) => setActivePost(post)}
-          />
-        )}
+        <ProfilePostGrid
+          posts={postType === "posts" ? userPosts : savedPosts}
+          onPostClick={setActivePost}
+        />
       </div>
 
-      {/* ================= MODAL ================= */}
+      {/* ================= MODERN MODAL ================= */}
       {activePost && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center"
           onClick={() => setActivePost(null)}
         >
-          {/* Stop click bubbling */}
           <div
-            className="relative w-full max-w-[500px]"
+            className="
+              relative bg-black w-full max-w-[420px] max-h-[90vh]
+              rounded-xl overflow-hidden
+              animate-scaleIn
+            "
             onClick={(e) => e.stopPropagation()}
           >
-            <Post post={activePost} />
+            {/* Scrollable content */}
+            <div className="h-full overflow-y-auto">
+              <Post post={activePost} />
+            </div>
 
-            {/* Close Button */}
+            {/* Close */}
             <button
-              className="absolute -top-10 right-0 text-white text-2xl"
+              className="absolute top-3 right-3 text-white text-xl"
               onClick={() => setActivePost(null)}
             >
               ✕
@@ -243,5 +189,23 @@ function Profile() {
     </div>
   );
 }
+
+/* ================= SMALL COMPONENTS ================= */
+
+const Stat = ({ label, value }) => (
+  <div>
+    <p className="text-sm font-semibold">{value}</p>
+    <p className="text-xs text-gray-400">{label}</p>
+  </div>
+);
+
+const Tab = ({ active, children, ...props }) => (
+  <button
+    {...props}
+    className={`py-3 ${active ? "border-b-2 border-white font-semibold" : "text-gray-400"}`}
+  >
+    {children}
+  </button>
+);
 
 export default Profile;

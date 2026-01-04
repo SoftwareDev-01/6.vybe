@@ -15,8 +15,10 @@ function Feed() {
   const { storyList, currentUserStory } = useSelector((state) => state.story);
   const navigate = useNavigate();
 
+  // ✅ ALWAYS ensure array
+  const posts = Array.isArray(postData) ? postData : [];
+
   return (
-    // 🔥 FULL WIDTH – CENTER AREA CONTROLS WIDTH
     <main className="w-full min-h-screen bg-[#0f0f0f]">
 
       {/* 🔹 Mobile Top Bar */}
@@ -65,9 +67,15 @@ function Feed() {
       <div className="flex flex-col gap-6 px-3 py-6 pb-28">
         <Nav />
 
-        {postData?.map((post, index) => (
-          <Post post={post} key={index} />
-        ))}
+        {posts.length === 0 ? (
+          <p className="text-gray-400 text-center mt-10">
+            No posts yet
+          </p>
+        ) : (
+          posts.map((post) => (
+            <Post post={post} key={post._id} />
+          ))
+        )}
       </div>
     </main>
   );
