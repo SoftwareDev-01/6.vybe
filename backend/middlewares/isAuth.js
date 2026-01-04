@@ -10,8 +10,15 @@ const isAuth = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ✅ FIX: use correct key from token
-    req.user = { _id: decoded.id };
+    const userId = decoded.userId || decoded.id || decoded._id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Invalid token payload" });
+    }
+
+    // keep both shapes to be compatible with existing code
+    req.userId = userId;
+    req.user = { _id: userId };
 
     next();
   } catch (error) {
