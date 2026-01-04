@@ -9,20 +9,18 @@ export const sendMessage = async (req, res) => {
   try {
     const senderId = req.userId; // ✅ SAFE
     const receiverId = req.params.receiverId;
-    const { text } = req.body; // ✅ CONSISTENT WITH FRONTEND
+    const { message } = req.body; // frontend sends `message`
 
-    let media = null;
+    let image = null;
 
-    // ✅ SAFE MEDIA UPLOAD
+    // SAFE MEDIA UPLOAD (frontend uses `image` field)
     if (req.file) {
-      media = await uploadOnCloudinary(req.file.path); // returns URL string
+      image = await uploadOnCloudinary(req.file.path); // returns URL string
     }
 
-    // ❌ prevent empty messages
-    if (!text && !media) {
-      return res.status(400).json({
-        message: "Message cannot be empty",
-      });
+    // prevent empty messages
+    if (!message && !image) {
+      return res.status(400).json({ message: "Message cannot be empty" });
     }
 
     // ✅ FIND OR CREATE CONVERSATION
@@ -41,10 +39,9 @@ export const sendMessage = async (req, res) => {
     const newMessage = await Message.create({
       sender: senderId,
       receiver: receiverId,
-      text,
-      media,
+      message,
+      image,
       status: "sent",
-      conversationId: conversation._id,
     });
 
     conversation.messages.push(newMessage._id);

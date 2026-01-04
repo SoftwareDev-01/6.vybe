@@ -15,7 +15,7 @@ const messageRouter = express.Router();
 messageRouter.post(
   "/send/:receiverId",
   isAuth,
-  upload.single("media"), // ✅ FIXED
+  upload.single("image"), // accept `image` field from frontend
   sendMessage
 );
 
