@@ -16,10 +16,12 @@ import {
   addMessage,
   deleteMessageForMe,
   deleteMessageForEveryone,
+  setSelectedUser,
 } from "../redux/messageSlice";
 
 function MessageArea() {
   const { selectedUser, messages } = useSelector((s) => s.message);
+  const { prevChatUsers } = useSelector((s) => s.message);
   const { userData } = useSelector((s) => s.user);
   const { socket } = useSelector((s) => s.socket);
 
@@ -36,6 +38,14 @@ function MessageArea() {
   const typingTimeout = useRef(null);
 
   /* ================= SAFETY ================= */
+
+  // If user reloads on /messageArea, attempt to auto-select the first prev chat
+  // so the chat UI loads instead of showing an empty state.
+  useEffect(() => {
+    if (!selectedUser && Array.isArray(prevChatUsers) && prevChatUsers.length) {
+      dispatch(setSelectedUser(prevChatUsers[0]));
+    }
+  }, [selectedUser, prevChatUsers, dispatch]);
 
   if (!selectedUser) {
     return (
