@@ -1,4 +1,6 @@
 import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -16,6 +18,10 @@ import { app, server } from "./socket.js";
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendDist = path.join(__dirname, "..", "frontend", "dist");
 
 /* ======================
    🌐 CORS (FINAL FIX)
@@ -66,6 +72,25 @@ app.get("/health", (_, res) => {
     uptime: process.uptime(),
   });
 });
+
+/* ======================
+   Serve frontend (production)
+   - If frontend is built into `frontend/dist`, serve it and
+     return index.html for any unknown GET (SPA routing).
+====================== */
+try {
+  // only enable if dist exists
+  const fs = await import("fs");
+  if (fs.existsSync(frontendDist)) {
+    app.use(express.static(frontendDist));
+
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(frontendDist, "index.html"));
+    });
+  }
+} catch (e) {
+  console.warn("Frontend dist not served (missing):", e.message);
+}
 
 /* ======================
    🚀 Start Server

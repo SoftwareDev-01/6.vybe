@@ -40,7 +40,7 @@ export const serverUrl = "https://six-vybe-4kho.onrender.com";
 
 function App() {
   const dispatch = useDispatch();
-  const { userData } = useSelector((state) => state.user);
+  const { userData, isAuthChecked } = useSelector((state) => state.user);
   const { socket } = useSelector((state) => state.socket);
 
   /* 🔹 App bootstrap (Instagram-style) */
@@ -88,6 +88,9 @@ function App() {
   return (
     /* 🌑 Instagram-like app shell */
     <div className="min-h-screen bg-[#0f0f0f] text-gray-100 font-[Inter] antialiased">
+      {!isAuthChecked ? (
+        <div />
+      ) : (
       <Routes>
         <Route path="/signup" element={!userData ? <SignUp /> : <Navigate to="/" />} />
         <Route path="/signin" element={!userData ? <SignIn /> : <Navigate to="/" />} />
@@ -143,6 +146,7 @@ function App() {
           element={userData ? <Loops /> : <Navigate to="/signin" />}
         />
       </Routes>
+      )}
     </div>
   );
 }

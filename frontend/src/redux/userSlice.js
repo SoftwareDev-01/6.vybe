@@ -9,6 +9,7 @@ const userSlice = createSlice({
     following: [],
     searchData: [],
     notificationData: [],
+    isAuthChecked: false,
   },
   reducers: {
     /* Logged-in user */
@@ -85,6 +86,10 @@ const userSlice = createSlice({
       state.following = [];
       state.searchData = [];
       state.notificationData = [];
+      state.isAuthChecked = false;
+    },
+    setAuthChecked: (state, action) => {
+      state.isAuthChecked = action.payload;
     },
   },
 });
@@ -99,6 +104,7 @@ export const {
   setFollowing,
   toggleFollow,
   resetUser,
+  setAuthChecked,
 } = userSlice.actions;
 
 export default userSlice.reducer;
