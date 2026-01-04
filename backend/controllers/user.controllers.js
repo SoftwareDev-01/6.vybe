@@ -94,7 +94,17 @@ return res.status(400).json({message:"you can not follow yourself."})
 const currentUser=await User.findById(currentUserId)
 const targetUser=await User.findById(targetUserId)
 
-const isFollowing=currentUser.following.includes(targetUserId)
+if(!currentUser){
+  return res.status(400).json({message:"current user not found"})
+}
+if(!targetUser){
+  return res.status(400).json({message:"target user not found"})
+}
+
+currentUser.following = currentUser.following || []
+targetUser.followers = targetUser.followers || []
+
+const isFollowing = Array.isArray(currentUser.following) && currentUser.following.some(id => id.toString() === targetUserId)
 
 if(isFollowing){
   currentUser.following=currentUser.following.filter(id=>id.toString()!=targetUserId)
