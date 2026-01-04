@@ -10,11 +10,12 @@ const isAuth = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ✅ FIX — attach full user object
-    req.user = { _id: decoded.userId };
+    // ✅ FIX: use correct key from token
+    req.user = { _id: decoded.id };
 
     next();
   } catch (error) {
+    console.error("AUTH ERROR:", error);
     return res.status(401).json({ message: "Unauthorized" });
   }
 };
