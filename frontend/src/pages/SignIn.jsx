@@ -1,79 +1,203 @@
-import React, { useState } from 'react'
-import logo from "../assets/logo2.png"
-import logo1 from "../assets/logo.png"
-import { IoIosEye } from "react-icons/io";
-import { IoIosEyeOff } from "react-icons/io";
-import axios from "axios"
-import { serverUrl } from '../App';
+import React, { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { IoIosEye, IoIosEyeOff } from "react-icons/io";
 import { ClipLoader } from "react-spinners";
-import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { setUserData } from '../redux/userSlice';
-function SignIn() {
-const [inputClicked,setInputClicked]=useState({
-    userName:false,
-    password:false
-})
-const [showPassword,setShowPassword]=useState(false)
-const [loading,setLoading]=useState(false)
-const [userName,setUserName]=useState("")
-const [password,setPassword]=useState("")
-const [err,setErr]=useState("")
-const navigate=useNavigate()
-const dispatch=useDispatch()
-const handleSignIn=async ()=>{
-  setLoading(true)
-  setErr("")
-  try {
-    const result=await axios.post(`${serverUrl}/api/auth/signin`,{userName,password},{withCredentials:true})
-   dispatch(setUserData(result.data))
-    setLoading(false)
-  } catch (error) {
-    console.log(error)
-    setLoading(false)
-    setErr(error.response?.data?.message)
-  }
-}
 
+import { serverUrl } from "../App";
+import { setUserData } from "../redux/userSlice";
+import logo from "../assets/logo.png";
+import promoImage from "../assets/s.png";
+
+function SignIn() {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const [userName, setUserName] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  const handleSignIn = async () => {
+    if (!userName || !password) return;
+    setLoading(true);
+    setErr("");
+
+    try {
+      const res = await axios.post(
+        `${serverUrl}/api/auth/signin`,
+        { userName, password },
+        { withCredentials: true }
+      );
+      dispatch(setUserData(res.data));
+    } catch (error) {
+      setErr(error.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className='w-full h-screen bg-gradient-to-b from-black to-gray-900 flex flex-col justify-center items-center'>
-      <div className='w-[90%] lg:max-w-[60%]  h-[600px] bg-white rounded-2xl flex justify-center items-center overflow-hidden border-2 border-[#1a1f23]'>
-<div className='w-full lg:w-[50%] h-full bg-white flex flex-col items-center justify-center p-[10px] gap-[20px]'>
+    <div className="min-h-screen w-full flex bg-[#0f0f0f] text-white overflow-hidden">
 
-<div className='flex gap-[10px] items-center text-[20px] font-semibold mt-[40px]'>
-    <span>Sign In to </span>
-    <img src={logo} alt="" className='w-[70px]'/>
-</div>
+      {/* ================= LEFT HALF ================= */}
+      <div className="hidden lg:flex w-1/2 min-h-screen flex-col px-20 py-16">
 
+        {/* Logo + Text */}
+        <div>
+          <img src={logo} alt="Logo" className="w-14 mb-14" />
 
-<div className='relative flex items-center justify-start w-[90%] h-[50px] rounded-2xl  border-2 border-black' onClick={()=>setInputClicked({...inputClicked,userName:true})}>
-    <label htmlFor='userName' className={`text-gray-700 absolute left-[20px] p-[5px] bg-white text-[15px] ${inputClicked.userName?"top-[-15px]":""}`}> Enter Username</label>
-        <input type="text" id='userName' className='w-[100%] h-[100%] rounded-2xl px-[20px] outline-none border-0' required onChange={(e)=>setUserName(e.target.value)} value={userName}/>
-    
-</div>
+          <h1 className="text-[40px] font-normal leading-[48px] tracking-[-0.5px] max-w-[520px]">
+            See everyday moments from your{" "}
+            <span className="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent font-medium">
+              close friends.
+            </span>
+          </h1>
+        </div>
 
-<div className='relative flex items-center justify-start w-[90%] h-[50px] rounded-2xl  border-2 border-black' onClick={()=>setInputClicked({...inputClicked,password:true})}>
-    <label htmlFor='password' className={`text-gray-700 absolute left-[20px] p-[5px] bg-white text-[15px] ${inputClicked.password?"top-[-15px]":""}`}> Enter password</label>
-        <input type={showPassword?"text":"password"} id='password' className='w-[100%] h-[100%] rounded-2xl px-[20px] outline-none border-0' required onChange={(e)=>setPassword(e.target.value)} value={password}/>
-        {!showPassword?<IoIosEye className='absolute cursor-pointer right-[20px] w-[25px] h-[25px]' onClick={()=>setShowPassword(true)}/>:<IoIosEyeOff className='absolute cursor-pointer right-[20px] w-[25px] h-[25px]' onClick={()=>setShowPassword(false)}/>} 
+        {/* IMAGE — resized only (NO SCROLL) */}
+        <div className="flex-1 flex items-center justify-center">
+                  <div className="relative w-full max-w-[480px] rounded-2xl overflow-hidden group">
+                    <img
+                      src={promoImage}
+                      alt="Promo"
+                      className="
+                        w-full h-full
+                        max-h-[48vh]
+                        object-cover
+                        transition-transform duration-700 ease-out
+                        group-hover:scale-105
+                      "
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
+                  </div>
+                </div>
+              </div>
         
-</div>
-<div className='w-[90%] px-[20px] cursor-pointer' onClick={()=>navigate("/forgot-password")}>Forgot Password</div>
 
-{err && <p className='text-red-500'>{err}</p>}
+      {/* ================= RIGHT HALF ================= */}
+      <div className="w-full lg:w-1/2 min-h-screen flex flex-col px-20 py-16">
 
-<button className='w-[70%] px-[20px] py-[10px] bg-black text-white font-semibold h-[50px] cursor-pointer rounded-2xl mt-[30px]' onClick={handleSignIn} disabled={loading}>{loading?<ClipLoader size={30} color='white'/>:"Sign In"}</button>
-<p className='cursor-pointer text-gray-800' onClick={()=>navigate("/signup")}>Want To Create A New Account ? <span className='border-b-2 border-b-black pb-[3px] text-black'>Sign Up</span></p>
-</div>
-<div className='md:w-[50%] h-full hidden lg:flex justify-center items-center bg-[#000000] flex-col gap-[10px] text-white text-[16px] font-semibold rounded-l-[30px] shadow-2xl shadow-black'>
+        <div className="max-w-[520px]">
 
-<img src={logo1} alt="" className='w-[40%]'/>
-<p >Not Just A Platform , It's A VYBE</p>
-</div>
+          <h2 className="text-[22px] font-medium mb-10">
+            Log into Vybe
+          </h2>
+
+          {err && (
+            <p className="text-red-500 text-[13px] text-center mb-4">
+              {err}
+            </p>
+          )}
+
+          <div className="space-y-5">
+            <input
+              type="text"
+              placeholder="Mobile number, username or email"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              className="
+                w-full h-[56px] px-6
+                bg-[#0f1419]
+                border border-[#2f3336]
+                rounded-full
+                text-[16px]
+                placeholder-[#71767b]
+                outline-none
+                focus:border-[#1d9bf0]
+              "
+            />
+
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="
+                  w-full h-[56px] px-6 pr-16
+                  bg-[#0f1419]
+                  border border-[#2f3336]
+                  rounded-full
+                  text-[16px]
+                  placeholder-[#71767b]
+                  outline-none
+                  focus:border-[#1d9bf0]
+                "
+              />
+              <button
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-6 top-1/2 -translate-y-1/2 text-[#71767b]"
+              >
+                {showPassword ? <IoIosEyeOff size={22} /> : <IoIosEye size={22} />}
+              </button>
+            </div>
+          </div>
+
+          <button
+            onClick={handleSignIn}
+            disabled={loading}
+            className="
+              w-full h-[56px] mt-8
+              bg-[#1d9bf0]
+              text-[17px] font-semibold
+              rounded-full
+              hover:bg-[#1a8cd8]
+              transition
+              disabled:opacity-60
+              cursor-pointer
+            "
+          >
+            {loading ? <ClipLoader size={22} color="white" /> : "Log in"}
+          </button>
+
+          <div className="mt-7">
+            <button
+              onClick={() => navigate("/forgot-password")}
+              className="
+                text-[16px]
+                text-[#1d9bf0]
+                cursor-pointer
+                hover:text-[#1a8cd8]
+                transition
+              "
+            >
+              Forgot password?
+            </button>
+          </div>
+
+          <div className="flex items-center my-12">
+            <div className="flex-grow h-px bg-[#2f3336]" />
+            <span className="px-5 text-[13px] text-[#71767b]">OR</span>
+            <div className="flex-grow h-px bg-[#2f3336]" />
+          </div>
+
+          <button
+            onClick={() => navigate("/signup")}
+            className="
+              w-full h-[56px]
+              border border-[#2f3336]
+              rounded-full
+              text-[16px]
+              font-medium
+              cursor-pointer
+              hover:bg-[#1a1a1a]
+              transition
+            "
+          >
+            Create new account
+          </button>
+
+          <div className="mt-14 flex justify-center text-[12px] text-[#71767b]">
+            © 2026 Meta
+          </div>
+
+        </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default SignIn
+export default SignIn;

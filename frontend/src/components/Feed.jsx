@@ -1,52 +1,73 @@
-import React from 'react'
-import logo from "../assets/logo.png"
+import React from "react";
+import logo from "../assets/logo.png";
 import { FaRegHeart } from "react-icons/fa6";
-import StoryDp from './StoryDp';
-import Nav from './Nav';
-import { useSelector } from 'react-redux';
 import { BiMessageAltDetail } from "react-icons/bi";
-import Post from './Post';
-import { useNavigate } from 'react-router-dom';
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+
+import StoryDp from "./StoryDp";
+import Nav from "./Nav";
+import Post from "./Post";
 
 function Feed() {
-  const { postData } = useSelector(state => state.post);
-  const { userData, notificationData } = useSelector(state => state.user);
-  const { storyList, currentUserStory } = useSelector(state => state.story);
+  const { postData } = useSelector((state) => state.post);
+  const { userData, notificationData } = useSelector((state) => state.user);
+  const { storyList, currentUserStory } = useSelector((state) => state.story);
   const navigate = useNavigate();
 
   return (
-    <div className='lg:w-[50%] w-full bg-[#0a0a0a] min-h-[100vh] lg:h-[100vh] relative lg:overflow-y-auto'>
-      
-      {/* Top Bar (Mobile Only) */}
-      <div className='w-full h-[100px] flex items-center justify-between p-[20px] lg:hidden'>
-        <img src={logo} alt="" className='w-[80px]' />
-        <div className='flex items-center gap-[10px]'>
-          <div className='relative' onClick={() => navigate("/notifications")}>
-            <FaRegHeart className='text-white w-[25px] h-[25px]' />
-            {notificationData?.length > 0 && notificationData.some((noti) => noti.isRead === false) && (
-              <div className='w-[10px] h-[10px] bg-blue-600 rounded-full absolute top-0 right-[-5px]'></div>
-            )}
+    <div className="w-full lg:w-[50%] min-h-screen bg-[#0f0f0f] lg:border-x border-gray-800">
+
+      {/* 🔹 Mobile Top Bar */}
+      <div className="lg:hidden sticky top-0 z-20 bg-[#0f0f0f] border-b border-gray-800">
+        <div className="flex items-center justify-between px-4 py-3">
+          <img src={logo} alt="logo" className="w-[90px]" />
+
+          <div className="flex items-center gap-5">
+            <div
+              className="relative cursor-pointer"
+              onClick={() => navigate("/notifications")}
+            >
+              <FaRegHeart className="text-gray-100 w-6 h-6" />
+              {notificationData?.some((n) => !n.isRead) && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full" />
+              )}
+            </div>
+
+            <BiMessageAltDetail
+              className="text-gray-100 w-6 h-6 cursor-pointer"
+              onClick={() => navigate("/messages")}
+            />
           </div>
-          <BiMessageAltDetail className='text-white w-[25px] h-[25px]' onClick={() => navigate("/messages")} />
         </div>
       </div>
 
-      {/* Stories Row */}
-      <div className='flex w-full justify-start overflow-x-auto gap-[10px] items-center p-[20px]'>
-        <StoryDp userName={"Your Story"} ProfileImage={userData.profileImage} story={currentUserStory} />
+      {/* 🔹 Stories Section */}
+      <div className="w-full overflow-x-auto flex items-center gap-4 px-4 py-4 border-b border-gray-800">
+        <StoryDp
+          userName="Your Story"
+          ProfileImage={userData?.profileImage}
+          story={currentUserStory}
+        />
+
         {storyList?.map((story, index) => (
-          <StoryDp userName={story.author.userName} ProfileImage={story.author.profileImage} story={story} key={index} />
+          <StoryDp
+            key={index}
+            userName={story.author.userName}
+            ProfileImage={story.author.profileImage}
+            story={story}
+          />
         ))}
       </div>
 
-      {/* Posts Feed */}
-      <div className='w-full min-h-[100vh] flex flex-col items-center gap-[20px] p-[10px] pt-[40px] bg-[#121212] rounded-t-[60px] relative pb-[120px]'>
+      {/* 🔹 Feed Posts */}
+      <div className="flex flex-col items-center gap-6 px-3 py-6 pb-28">
         <Nav />
-        {postData && postData.map((post, index) => (
+
+        {postData?.map((post, index) => (
           <Post post={post} key={index} />
         ))}
       </div>
-
     </div>
   );
 }

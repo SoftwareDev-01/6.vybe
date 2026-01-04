@@ -1,90 +1,226 @@
-import React, { useState } from 'react'
-import logo from "../assets/logo2.png"
-import logo1 from "../assets/logo.png"
-import { IoIosEye } from "react-icons/io";
-import { IoIosEyeOff } from "react-icons/io";
-import axios from "axios"
-import { serverUrl } from '../App';
+import React, { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { IoIosEye, IoIosEyeOff } from "react-icons/io";
 import { ClipLoader } from "react-spinners";
-import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { setUserData } from '../redux/userSlice';
+
+import { serverUrl } from "../App";
+import { setUserData } from "../redux/userSlice";
+import logo from "../assets/logo.png";
+import promoImage from "../assets/s1.png";
+
 function SignUp() {
-const [inputClicked,setInputClicked]=useState({
-    name:false,
-    userName:false,
-    email:false,
-    password:false
-})
-const [showPassword,setShowPassword]=useState(false)
-const [loading,setLoading]=useState(false)
-const [name,setName]=useState("")
-const [userName,setUserName]=useState("")
-const [err,setErr]=useState("")
-const [email,setEmail]=useState("")
-const [password,setPassword]=useState("")
-const navigate=useNavigate()
-const dispatch=useDispatch()
-const handleSignUp=async ()=>{
-  setLoading(true)
-  setErr("")
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  try {
-    const result=await axios.post(`${serverUrl}/api/auth/signup`,{name,userName,email,password},{withCredentials:true})
-    dispatch(setUserData(result.data))
-    setLoading(false)
-  } catch (error) {
-    setErr(error.response?.data?.message)
-    console.log(error)
-    setLoading(false)
-  }
-}
+  const [name, setName] = useState("");
+  const [userName, setUserName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  const handleSignUp = async () => {
+    if (!name || !userName || !email || !password) return;
+
+    setLoading(true);
+    setErr("");
+
+    try {
+      const res = await axios.post(
+        `${serverUrl}/api/auth/signup`,
+        { name, userName, email, password },
+        { withCredentials: true }
+      );
+      dispatch(setUserData(res.data));
+    } catch (error) {
+      setErr(error.response?.data?.message || "Signup failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className='w-full h-screen bg-gradient-to-b from-black to-gray-900 flex flex-col justify-center items-center'>
-      <div className='w-[90%] lg:max-w-[60%]  h-[600px] bg-white rounded-2xl flex justify-center items-center overflow-hidden border-2 border-[#1a1f23]'>
-<div className='w-full lg:w-[50%] h-full bg-white flex flex-col items-center p-[10px] gap-[20px]'>
+    <div className="h-screen w-full flex bg-[#0f0f0f] text-white overflow-hidden">
 
-<div className='flex gap-[10px] items-center text-[20px] font-semibold mt-[40px]'>
-    <span>Sign Up to </span>
-    <img src={logo} alt="" className='w-[70px]'/>
-</div>
+      {/* ================= LEFT HALF ================= */}
+      <div className="hidden lg:flex w-1/2 h-full flex-col px-20 py-16">
 
-<div className='relative flex items-center justify-start w-[90%] h-[50px] rounded-2xl mt-[30px] border-2 border-black' onClick={()=>setInputClicked({...inputClicked,name:true})}>
-    <label htmlFor='name' className={`text-gray-700 absolute left-[20px] p-[5px] bg-white text-[15px] ${inputClicked.name?"top-[-15px]":""}`}> Enter Your Name</label>
-        <input type="text" id='name' className='w-[100%] h-[100%] rounded-2xl px-[20px] outline-none border-0' required onChange={(e)=>setName(e.target.value)} value={name}/>
-    
-</div>
-<div className='relative flex items-center justify-start w-[90%] h-[50px] rounded-2xl  border-2 border-black' onClick={()=>setInputClicked({...inputClicked,userName:true})}>
-    <label htmlFor='userName' className={`text-gray-700 absolute left-[20px] p-[5px] bg-white text-[15px] ${inputClicked.userName?"top-[-15px]":""}`}> Enter Username</label>
-        <input type="text" id='userName' className='w-[100%] h-[100%] rounded-2xl px-[20px] outline-none border-0' required onChange={(e)=>setUserName(e.target.value)} value={userName}/>
-    
-</div>
-<div className='relative flex items-center justify-start w-[90%] h-[50px] rounded-2xl  border-2 border-black' onClick={()=>setInputClicked({...inputClicked,email:true})}>
-    <label htmlFor='email' className={`text-gray-700 absolute left-[20px] p-[5px] bg-white text-[15px] ${inputClicked.email?"top-[-15px]":""}`}> Enter Email</label>
-        <input type="email" id='email' className='w-[100%] h-[100%] rounded-2xl px-[20px] outline-none border-0' required onChange={(e)=>setEmail(e.target.value)} value={email}/>
-    
-</div>
-<div className='relative flex items-center justify-start w-[90%] h-[50px] rounded-2xl  border-2 border-black' onClick={()=>setInputClicked({...inputClicked,password:true})}>
-    <label htmlFor='password' className={`text-gray-700 absolute left-[20px] p-[5px] bg-white text-[15px] ${inputClicked.password?"top-[-15px]":""}`}> Enter password</label>
-        <input type={showPassword?"text":"password"} id='password' className='w-[100%] h-[100%] rounded-2xl px-[20px] outline-none border-0' required onChange={(e)=>setPassword(e.target.value)} value={password}/>
-        {!showPassword?<IoIosEye className='absolute cursor-pointer right-[20px] w-[25px] h-[25px]' onClick={()=>setShowPassword(true)}/>:<IoIosEyeOff className='absolute cursor-pointer right-[20px] w-[25px] h-[25px]' onClick={()=>setShowPassword(false)}/>} 
-</div>
-{err && <p className='text-red-500'>{err}</p>}
+        {/* Logo + Text */}
+        <div>
+          <img src={logo} alt="Logo" className="w-14 mb-14" />
 
+          <h1 className="text-[40px] font-normal leading-[48px] tracking-[-0.5px] max-w-[520px]">
+            Join today and share moments with your{" "}
+            <span className="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent font-medium">
+              close friends.
+            </span>
+          </h1>
+        </div>
 
-<button className='w-[70%] px-[20px] py-[10px] bg-black text-white font-semibold h-[50px] cursor-pointer rounded-2xl mt-[30px]' onClick={handleSignUp} disabled={loading}>{loading?<ClipLoader size={30} color='white'/>:"Sign Up"}</button>
-<p className='cursor-pointer text-gray-800' onClick={()=>navigate("/signin")}>Already Have An Account ? <span className='border-b-2 border-b-black pb-[3px] text-black'>Sign In</span></p>
-</div>
-<div className='md:w-[50%] h-full hidden lg:flex justify-center items-center bg-[#000000] flex-col gap-[10px] text-white text-[16px] font-semibold rounded-l-[30px] shadow-2xl shadow-black'>
+        {/* Center Image (RESIZED — NO SCROLL) */}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="relative w-full max-w-[480px] rounded-2xl overflow-hidden group">
+            <img
+              src={promoImage}
+              alt="Promo"
+              className="
+                w-full h-full
+                max-h-[48vh]
+                object-cover
+                transition-transform duration-700 ease-out
+                group-hover:scale-105
+              "
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
+          </div>
+        </div>
+      </div>
 
-<img src={logo1} alt="" className='w-[40%]'/>
-<p >Not Just A Platform , It's A VYBE</p>
-</div>
+      {/* ================= RIGHT HALF ================= */}
+      <div className="w-full lg:w-1/2 h-full flex flex-col px-8 sm:px-12 md:px-20 py-16">
+
+        <div className="max-w-[520px]">
+
+          <h2 className="text-[22px] font-medium mb-10">
+            Create your account
+          </h2>
+
+          {err && (
+            <p className="text-red-500 text-[13px] text-center mb-4">
+              {err}
+            </p>
+          )}
+
+          {/* INPUTS */}
+          <div className="space-y-5">
+
+            <input
+              type="text"
+              placeholder="Full name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="
+                w-full h-[56px] px-6
+                bg-[#0f1419]
+                border border-[#2f3336]
+                rounded-full
+                text-[16px]
+                placeholder-[#71767b]
+                outline-none
+                focus:border-[#1d9bf0]
+              "
+            />
+
+            <input
+              type="text"
+              placeholder="Username"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              className="
+                w-full h-[56px] px-6
+                bg-[#0f1419]
+                border border-[#2f3336]
+                rounded-full
+                text-[16px]
+                placeholder-[#71767b]
+                outline-none
+                focus:border-[#1d9bf0]
+              "
+            />
+
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="
+                w-full h-[56px] px-6
+                bg-[#0f1419]
+                border border-[#2f3336]
+                rounded-full
+                text-[16px]
+                placeholder-[#71767b]
+                outline-none
+                focus:border-[#1d9bf0]
+              "
+            />
+
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="
+                  w-full h-[56px] px-6 pr-16
+                  bg-[#0f1419]
+                  border border-[#2f3336]
+                  rounded-full
+                  text-[16px]
+                  placeholder-[#71767b]
+                  outline-none
+                  focus:border-[#1d9bf0]
+                "
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-6 top-1/2 -translate-y-1/2 text-[#71767b] cursor-pointer"
+              >
+                {showPassword ? <IoIosEyeOff size={22} /> : <IoIosEye size={22} />}
+              </button>
+            </div>
+          </div>
+
+          {/* SIGN UP BUTTON */}
+          <button
+            onClick={handleSignUp}
+            disabled={loading}
+            className="
+              w-full h-[56px] mt-8
+              bg-[#1d9bf0]
+              text-[17px] font-semibold
+              rounded-full
+              hover:bg-[#1a8cd8]
+              transition
+              disabled:opacity-60
+              cursor-pointer
+            "
+          >
+            {loading ? <ClipLoader size={22} color="white" /> : "Sign up"}
+          </button>
+
+          {/* TERMS */}
+          <p className="text-[14px] text-[#71767b] mt-6 leading-relaxed">
+            By signing up, you agree to our{" "}
+            <span className="text-[#1d9bf0]">Terms</span>,{" "}
+            <span className="text-[#1d9bf0]">Privacy Policy</span> and{" "}
+            <span className="text-[#1d9bf0]">Cookies Policy</span>.
+          </p>
+
+          {/* LOGIN LINK */}
+          <div className="mt-10">
+            <button
+              onClick={() => navigate("/signin")}
+              className="text-[16px] text-[#1d9bf0] cursor-pointer"
+            >
+              Already have an account ? Log in
+            </button>
+          </div>
+
+          {/* FOOTER */}
+          <div className="mt-14 flex justify-center text-[12px] text-[#71767b]">
+            © 2026 Meta
+          </div>
+
+        </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default SignUp
+export default SignUp;

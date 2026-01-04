@@ -1,37 +1,48 @@
-import axios from 'axios'
-import React, { useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import { serverUrl } from '../App'
-import { useDispatch, useSelector } from 'react-redux'
-import { setStoryData } from '../redux/storySlice'
-import StoryCard from '../components/StoryCard'
+import React, { useEffect } from "react";
+import axios from "axios";
+import { useParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+
+import { serverUrl } from "../App";
+import { setStoryData } from "../redux/storySlice";
+import StoryCard from "../components/StoryCard";
 
 function Story() {
-    const {userName}=useParams()
-    const dispatch=useDispatch()
-    const {storyData}=useSelector(state=>state.story)
+  const { userName } = useParams();
+  const dispatch = useDispatch();
+  const { storyData } = useSelector((state) => state.story);
 
-    const handleStory=async ()=>{
-      dispatch(setStoryData(null))
-        try {
-            const result=await axios.get(`${serverUrl}/api/story/getByUserName/${userName}`,{withCredentials:true})
-            dispatch(setStoryData(result.data[0]))
-            console.log(storyData)
-        } catch (error) {
-            console.log(error)
-        }
-    }
-    useEffect(()=>{
-        if(userName){
-         handleStory()
-        }
+  /* ================= FETCH STORY ================= */
 
-    },[userName])
+  useEffect(() => {
+    if (!userName) return;
+
+    const fetchStory = async () => {
+      dispatch(setStoryData(null)); // reset for clean transition
+      try {
+        const res = await axios.get(
+          `${serverUrl}/api/story/getByUserName/${userName}`,
+          { withCredentials: true }
+        );
+        dispatch(setStoryData(res.data[0]));
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    fetchStory();
+  }, [userName, dispatch]);
+
+  /* ================= UI ================= */
+
   return (
-    <div className='w-full  h-[100vh] bg-black flex justify-center items-center'>
-      <StoryCard storyData={storyData}/>
+    <div className="w-screen h-screen bg-black flex justify-center items-center">
+      {/* Story container */}
+      <div className="w-full max-w-[420px] h-full flex justify-center items-center">
+        {storyData && <StoryCard storyData={storyData} />}
+      </div>
     </div>
-  )
+  );
 }
 
-export default Story
+export default Story;

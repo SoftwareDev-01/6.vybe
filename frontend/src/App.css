@@ -1,42 +1,52 @@
+/* ================================
+   🚫 REMOVE VITE DEMO STYLES
+   ================================ */
+
+/* Root should NOT restrict width in social apps */
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  min-height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* ================================
+   📱 INSTAGRAM-LIKE APP CONTAINER
+   ================================ */
+
+.app-container {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #0f0f0f;
+  display: flex;
+  justify-content: center;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* Main content width (Instagram style) */
+.app-content {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* ================================
+   📦 GENERIC UTILITIES
+   ================================ */
+
+.text-muted {
+  color: #9ca3af;
 }
 
-.card {
-  padding: 2em;
+.divider {
+  height: 1px;
+  background-color: rgba(63, 63, 70, 0.4);
+  width: 100%;
 }
 
-.read-the-docs {
-  color: #888;
+/* ================================
+   🖼️ IMAGE BEHAVIOR
+   ================================ */
+
+img {
+  object-fit: cover;
 }

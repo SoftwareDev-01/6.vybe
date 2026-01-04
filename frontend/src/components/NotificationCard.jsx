@@ -1,36 +1,63 @@
-import React from 'react'
-import dp from "../assets/dp.webp"
-function NotificationCard({noti}) {
+import React from "react";
+import dp from "../assets/dp.webp";
 
-    
+function NotificationCard({ noti }) {
   return (
-    <div className='w-full flex justify-between items-center p-[5px] min-h-[50px] bg-gray-800 rounded-full'>
-    <div className='flex gap-[10px] items-center'>
-        <div className='w-[40px] h-[40px] border-2 border-black rounded-full cursor-pointer overflow-hidden'>
-                 <img src={noti.sender.profileImage || dp} alt="" className='w-full object-cover'/>
-             </div> 
-             <div className='flex flex-col'>
-                <h1 className='text-[16px] text-white font-semibold'>{noti.sender.userName}</h1>
-                <div className='text-[15px] text-gray-200'>{noti.message}</div>
-             </div>
-    </div>
-    <div className='w-[40px] h-[40px] rounded-full overflow-hidden border-4 border-black'>
+    <div
+      className="
+        w-full flex items-center justify-between
+        px-4 py-3
+        bg-[#0f0f0f]
+        border border-gray-800
+        rounded-xl
+        hover:bg-[#161616]
+        transition
+      "
+    >
+      {/* 🔹 Left: Sender info */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full overflow-hidden">
+          <img
+            src={noti.sender.profileImage || dp}
+            alt="sender"
+            className="w-full h-full object-cover"
+          />
+        </div>
 
-        {noti.loop
-        ?
-        <video src={noti?.loop?.media} muted  className='h-full w-full object-cover'/>
-        :
-        noti.post?.mediaType=="image"?
-        <img src={noti.post?.media} className='h-full object-cover'/>
-        :
-        noti.post?
-        <video src={noti.post?.media} muted loop className='h-full w-full object-cover'/>
-        :
-        null}
+        <div className="flex flex-col">
+          <p className="text-sm text-white font-semibold">
+            {noti.sender.userName}
+          </p>
+          <p className="text-sm text-gray-400 line-clamp-1">
+            {noti.message}
+          </p>
+        </div>
+      </div>
 
+      {/* 🔹 Right: Post / Loop Preview */}
+      <div className="w-11 h-11 rounded-lg overflow-hidden bg-black flex-shrink-0">
+        {noti.loop ? (
+          <video
+            src={noti.loop.media}
+            muted
+            className="w-full h-full object-cover"
+          />
+        ) : noti.post?.mediaType === "image" ? (
+          <img
+            src={noti.post.media}
+            alt="post"
+            className="w-full h-full object-cover"
+          />
+        ) : noti.post ? (
+          <video
+            src={noti.post.media}
+            muted
+            className="w-full h-full object-cover"
+          />
+        ) : null}
+      </div>
     </div>
-    </div>
-  )
+  );
 }
 
-export default NotificationCard
+export default NotificationCard;

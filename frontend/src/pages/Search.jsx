@@ -1,70 +1,118 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from "react";
 import { MdOutlineKeyboardBackspace } from "react-icons/md";
-import { useNavigate } from 'react-router-dom';
 import { FiSearch } from "react-icons/fi";
-import axios from 'axios';
-import { serverUrl } from '../App';
-import { useDispatch, useSelector } from 'react-redux';
-import { setSearchData } from '../redux/userSlice';
-import dp from "../assets/dp.webp"
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+
+import { serverUrl } from "../App";
+import dp from "../assets/dp.webp";
+
 function Search() {
-    const navigate=useNavigate()
-    const[input,setInput]=useState(null)
-    const [searchData,setSearchData]=useState()
-    const dispatch=useDispatch()
-    const handleSearch=async ()=>{
-     
-        try {
-            const result=await axios.get(`${serverUrl}/api/user/search?keyWord=${input}`,{withCredentials:true})
-           setSearchData(result.data)
-            console.log(result.data)
-        } catch (error) {
-            console.log(error)
-        }
+  const navigate = useNavigate();
+
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+
+  /* ================= SEARCH ================= */
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([]);
+      return;
     }
 
-    useEffect(()=>{
-        if(input){
-  handleSearch()
-        }
-   
-    },[input])
-    console.log(searchData)
+    const fetchResults = async () => {
+      try {
+        const res = await axios.get(
+          `${serverUrl}/api/user/search?keyWord=${query}`,
+          { withCredentials: true }
+        );
+        setResults(res.data);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    const delay = setTimeout(fetchResults, 300);
+    return () => clearTimeout(delay);
+  }, [query]);
+
+  /* ================= UI ================= */
+
   return (
-    <div className='w-full min-h-[100vh] bg-black flex items-center flex-col gap-[20px] '>
-       <div className='w-full h-[80px]  flex items-center gap-[20px] px-[20px] absolute top-0 '>
-                      <MdOutlineKeyboardBackspace className='text-white cursor-pointer w-[25px]  h-[25px] ' onClick={() => navigate(`/`)} />
-                 
-                  </div>
-                  <div className='w-full h-[80px] flex items-center justify-center mt-[80px]'>
- <div className='w-[90%] max-w-[800px] h-[80%] rounded-full bg-[#0f1414] flex items-center px-[20px]' >
-<FiSearch className='w-[18px] h-[18px] text-white'/>
-                    <input type="text" placeholder='search...' className='w-full h-full outline-0 rounded-full px-[20px] text-white text-[18px]' onChange={(e)=>setInput(e.target.value)} value={input}/>
-                  </div>
-                  </div>
-   {input &&  searchData?.map((user)=>(
-<div className='w-[90vw] max-w-[700px] h-[60px] rounded-full bg-white flex items-center gap-[20px] px-[5px] cursor-pointer hover:bg-gray-200' onClick={()=>navigate(`/profile/${user.userName}`)}>
-<div className='w-[50px] h-[50px] border-2 border-black rounded-full cursor-pointer overflow-hidden' >
-          <img src={user.profileImage || dp} alt="" className='w-full object-cover'/>
+    <div className="min-h-screen bg-black text-white">
+      {/* Header */}
+      <div className="h-[56px] flex items-center gap-4 px-4 border-b border-gray-800">
+        <MdOutlineKeyboardBackspace
+          className="w-6 h-6 cursor-pointer"
+          onClick={() => navigate("/")}
+        />
+        <span className="text-sm font-semibold">Search</span>
       </div>
 
-      <div className='text-black text-[18px] font-semibold'>
-        <div>{user.userName}</div>
-           <div className='text-[14px] text-gray-400'>{user.name}</div>
+      {/* Search bar */}
+      <div className="px-4 py-3">
+        <div className="h-9 rounded-md bg-[#121212] flex items-center px-3 gap-2">
+          <FiSearch className="text-gray-400 w-4 h-4" />
+          <input
+            type="text"
+            placeholder="Search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="
+              bg-transparent w-full
+              text-sm text-white
+              outline-none
+              placeholder-gray-500
+            "
+          />
+        </div>
       </div>
-   
+
+      {/* Results */}
+      <div className="flex flex-col">
+        {results.map((user) => (
+          <div
+            key={user._id}
+            onClick={() => navigate(`/profile/${user.userName}`)}
+            className="
+              flex items-center gap-3
+              px-4 py-3
+              cursor-pointer
+              hover:bg-[#121212]
+              transition
+            "
+          >
+            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+              <img
+                src={user.profileImage || dp}
+                alt="user"
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            <div className="leading-tight">
+              <p className="text-sm font-medium">{user.userName}</p>
+              <p className="text-xs text-gray-400">{user.name}</p>
+            </div>
+          </div>
+        ))}
+
+        {/* Empty states */}
+        {query && results.length === 0 && (
+          <p className="px-4 py-6 text-sm text-gray-500">
+            No results found
+          </p>
+        )}
+
+        {!query && (
+          <p className="px-4 py-6 text-sm text-gray-500">
+            Search for people
+          </p>
+        )}
       </div>
-
-
-
-))}   
-
-{!input && <div className='text-[30px] text-gray-700 font-bold'>Search Here...</div>}
-
-                  
-                  
     </div>
-  )
+  );
 }
 
-export default Search
+export default Search;

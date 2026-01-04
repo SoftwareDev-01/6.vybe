@@ -1,164 +1,205 @@
-import React, { useEffect, useState } from 'react'
-import dp from "../assets/dp.webp"
-import VideoPlayer from './VideoPlayer'
+import React, { useEffect, useState } from "react";
 import { GoHeart, GoHeartFill } from "react-icons/go";
-import { MdOutlineComment } from "react-icons/md";
-import { MdOutlineBookmarkBorder } from "react-icons/md";
+import { MdOutlineComment, MdOutlineBookmarkBorder } from "react-icons/md";
 import { GoBookmarkFill } from "react-icons/go";
 import { IoSendSharp } from "react-icons/io5";
-import axios from 'axios';
-import { serverUrl } from '../App';
-import { setPostData } from '../redux/postSlice';
-import { setUserData } from '../redux/userSlice';
-import FollowButton from './FollowButton';
-import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+
+import dp from "../assets/dp.webp";
+import VideoPlayer from "./VideoPlayer";
+import FollowButton from "./FollowButton";
+import { serverUrl } from "../App";
+import { setPostData } from "../redux/postSlice";
+import { setUserData } from "../redux/userSlice";
 
 function Post({ post }) {
-  const { userData } = useSelector(state => state.user)
-  const { postData } = useSelector(state => state.post)
-  const { socket } = useSelector(state => state.socket)
-  const [showComment, setShowComment] = useState(false)
-  const [message,setMessage]=useState("")
-  const navigate=useNavigate()
-  const dispatch=useDispatch()
+  const { userData } = useSelector((s) => s.user);
+  const { postData } = useSelector((s) => s.post);
+  const { socket } = useSelector((s) => s.socket);
+
+  const [showComment, setShowComment] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  /* ================= API ================= */
 
   const handleLike = async () => {
-    try {
-      const result = await axios.get(`${serverUrl}/api/post/like/${post._id}`, { withCredentials: true })
-      const updatedPost = result.data
-      const updatedPosts = postData.map(p => p._id == post._id ? updatedPost : p)
-      dispatch(setPostData(updatedPosts))
-    } catch (error) {
-      console.log(error)
-    }
-  }
+    const res = await axios.get(
+      `${serverUrl}/api/post/like/${post._id}`,
+      { withCredentials: true }
+    );
+    dispatch(
+      setPostData(postData.map((p) => (p._id === post._id ? res.data : p)))
+    );
+  };
 
   const handleComment = async () => {
-    try {
-      const result = await axios.post(`${serverUrl}/api/post/comment/${post._id}`, { message }, { withCredentials: true })
-      const updatedPost = result.data
-      const updatedPosts = postData.map(p => p._id == post._id ? updatedPost : p)
-      dispatch(setPostData(updatedPosts))
-    } catch (error) {
-      console.log(error.response)
-    }
-  }
+    const res = await axios.post(
+      `${serverUrl}/api/post/comment/${post._id}`,
+      { message },
+      { withCredentials: true }
+    );
+    dispatch(
+      setPostData(postData.map((p) => (p._id === post._id ? res.data : p)))
+    );
+    setMessage("");
+  };
 
   const handleSaved = async () => {
-    try {
-      const result = await axios.get(`${serverUrl}/api/post/saved/${post._id}`, { withCredentials: true })
-      dispatch(setUserData(result.data))
-    } catch (error) {
-      console.log(error.response)
-    }
-  }
+    const res = await axios.get(
+      `${serverUrl}/api/post/saved/${post._id}`,
+      { withCredentials: true }
+    );
+    dispatch(setUserData(res.data));
+  };
+
+  /* ================= SOCKET ================= */
 
   useEffect(() => {
-    socket?.on("likedPost", (updatedData) => {
-      const updatedPosts = postData.map(p => p._id == updatedData.postId ? { ...p, likes: updatedData.likes } : p)
-      dispatch(setPostData(updatedPosts))
-    })
+    socket?.on("likedPost", (data) => {
+      dispatch(
+        setPostData(
+          postData.map((p) =>
+            p._id === data.postId ? { ...p, likes: data.likes } : p
+          )
+        )
+      );
+    });
 
-    socket?.on("commentedPost", (updatedData) => {
-      const updatedPosts = postData.map(p => p._id == updatedData.postId ? { ...p, comments: updatedData.comments } : p)
-      dispatch(setPostData(updatedPosts))
-    })
+    socket?.on("commentedPost", (data) => {
+      dispatch(
+        setPostData(
+          postData.map((p) =>
+            p._id === data.postId ? { ...p, comments: data.comments } : p
+          )
+        )
+      );
+    });
 
     return () => {
-      socket?.off("likedPost")
-      socket?.off("CommentedPost")
-    }
-  }, [socket, postData, dispatch])
+      socket?.off("likedPost");
+      socket?.off("commentedPost");
+    };
+  }, [socket, postData, dispatch]);
+
+  /* ================= UI ================= */
 
   return (
-    <div className='w-[90%] flex flex-col gap-[10px] bg-[#020217] items-center shadow-2xl shadow-[#00000058] rounded-2xl pb-[20px] text-white transition-all duration-300'>
-      <div className='w-full h-[80px] flex justify-between items-center px-[10px]'>
-        <div className='flex justify-center items-center md:gap-[20px] gap-[10px] cursor-pointer' onClick={() => navigate(`/profile/${post.author?.userName}`)}>
-          <div className='w-[40px] h-[40px] md:w-[60px] md:h-[60px] border-2 border-white rounded-full overflow-hidden'>
-            <img src={post.author?.profileImage || dp} alt="" className='w-full object-cover' />
-          </div>
-          <div className='w-[150px] font-semibold truncate text-white'>{post.author.userName}</div>
+    <div className="w-full max-w-[470px] mx-auto bg-[#0f0f0f] border border-gray-800 rounded-xl overflow-hidden">
+      {/* 🔹 Header */}
+      <div className="flex items-center justify-between px-4 py-3">
+        <div
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={() => navigate(`/profile/${post.author.userName}`)}
+        >
+          <img
+            src={post.author.profileImage || dp}
+            className="w-9 h-9 rounded-full object-cover"
+          />
+          <span className="text-sm font-semibold text-white">
+            {post.author.userName}
+          </span>
         </div>
-        {userData._id != post.author._id &&
-          <FollowButton
-            tailwind={'px-[10px] minw-[60px] md:min-w-[100px] py-[5px] h-[30px] md:h-[40px] bg-white text-black rounded-2xl text-[14px] md:text-[16px] hover:scale-105 transition'}
-            targetUserId={post.author._id}
-          />}
+
+        {userData._id !== post.author._id && (
+          <FollowButton targetUserId={post.author._id} />
+        )}
       </div>
 
-      <div className='w-[90%] flex items-center justify-center'>
-        {post.mediaType == "image" &&
-          <div className='w-[90%] flex items-center justify-center'>
-            <img src={post.media} alt="" className='w-[80%] rounded-2xl object-cover' />
-          </div>}
+      {/* 🔹 Media */}
+      <div className="w-full bg-black">
+        {post.mediaType === "image" && (
+          <img
+            src={post.media}
+            className="w-full max-h-[600px] object-cover"
+          />
+        )}
 
-        {post.mediaType == "video" &&
-          <div className='w-[80%] flex flex-col items-center justify-center'>
-            <VideoPlayer media={post.media} />
-          </div>}
+        {post.mediaType === "video" && (
+          <VideoPlayer media={post.media} />
+        )}
       </div>
 
-      <div className='w-full h-[60px] flex justify-between items-center px-[20px] mt-[10px]'>
-        <div className='flex justify-center items-center gap-[10px]'>
-          <div className='flex justify-center items-center gap-[5px]'>
-            {!post.likes.includes(userData._id) &&
-              <GoHeart className='w-[25px] h-[25px] cursor-pointer hover:scale-110 transition' onClick={handleLike} />}
-            {post.likes.includes(userData._id) &&
-              <GoHeartFill className='w-[25px] h-[25px] text-red-600 cursor-pointer hover:scale-110 transition' onClick={handleLike} />}
-            <span>{post.likes.length}</span>
-          </div>
-          <div className='flex justify-center items-center gap-[5px] cursor-pointer hover:scale-110 transition' onClick={() => setShowComment(prev => !prev)}>
-            <MdOutlineComment className='w-[25px] h-[25px]' />
-            <span>{post.comments.length}</span>
-          </div>
+      {/* 🔹 Actions */}
+      <div className="flex items-center justify-between px-4 py-3 text-white">
+        <div className="flex items-center gap-4">
+          <button onClick={handleLike}>
+            {post.likes.includes(userData._id) ? (
+              <GoHeartFill className="w-6 h-6 text-red-500" />
+            ) : (
+              <GoHeart className="w-6 h-6" />
+            )}
+          </button>
+
+          <button onClick={() => setShowComment((p) => !p)}>
+            <MdOutlineComment className="w-6 h-6" />
+          </button>
         </div>
-        <div onClick={handleSaved} className='cursor-pointer hover:scale-110 transition'>
-          {!userData.saved.includes(post?._id) &&
-            <MdOutlineBookmarkBorder className='w-[25px] h-[25px]' />}
-          {userData.saved.includes(post?._id) &&
-            <GoBookmarkFill className='w-[25px] h-[25px]' />}
-        </div>
+
+        <button onClick={handleSaved}>
+          {userData.saved.includes(post._id) ? (
+            <GoBookmarkFill className="w-6 h-6" />
+          ) : (
+            <MdOutlineBookmarkBorder className="w-6 h-6" />
+          )}
+        </button>
       </div>
 
-      {post.caption &&
-        <div className='w-full px-[20px] gap-[10px] flex justify-start items-center text-gray-200'>
-          <h1 className='font-semibold'>{post.author.userName}</h1>
-          <div>{post.caption}</div>
-        </div>}
+      {/* 🔹 Likes */}
+      <div className="px-4 text-sm text-white font-semibold">
+        {post.likes.length} likes
+      </div>
 
-      {showComment &&
-        <div className='w-full flex flex-col gap-[30px] pb-[20px]'>
-          <div className='w-full h-[80px] flex items-center justify-between px-[20px] relative'>
-            <div className='w-[40px] h-[40px] md:w-[60px] md:h-[60px] border-2 border-white rounded-full overflow-hidden'>
-              <img src={post.author?.profileImage || dp} alt="" className='w-full object-cover' />
-            </div>
-            <input
-              type="text"
-              className='px-[10px] border-b-2 border-b-gray-400 w-[90%] outline-none h-[40px] bg-transparent text-white placeholder-gray-400'
-              placeholder='Write comment...'
-              onChange={(e) => setMessage(e.target.value)}
-              value={message}
-            />
-            <button className='absolute right-[20px] cursor-pointer' onClick={handleComment}>
-              <IoSendSharp className='w-[25px] h-[25px] text-white' />
-            </button>
-          </div>
+      {/* 🔹 Caption */}
+      {post.caption && (
+        <div className="px-4 py-2 text-sm text-gray-200">
+          <span className="font-semibold mr-2">
+            {post.author.userName}
+          </span>
+          {post.caption}
+        </div>
+      )}
 
-          <div className='w-full max-h-[300px] overflow-auto'>
-            {post.comments?.map((com, index) => (
-              <div key={index} className='w-full px-[20px] py-[20px] flex items-center gap-[20px] border-b border-b-gray-600'>
-                <div className='w-[40px] h-[40px] md:w-[60px] md:h-[60px] border-2 border-white rounded-full overflow-hidden'>
-                  <img src={com.author.profileImage || dp} alt="" className='w-full object-cover' />
-                </div>
-                <div className='text-gray-300'>{com.message}</div>
-              </div>
+      {/* 🔹 Comments */}
+      {showComment && (
+        <div className="px-4 py-3 border-t border-gray-800">
+          <div className="space-y-3 max-h-[200px] overflow-y-auto">
+            {post.comments.map((c, i) => (
+              <p key={i} className="text-sm text-gray-300">
+                <span className="font-semibold text-white mr-2">
+                  {c.author.userName}
+                </span>
+                {c.message}
+              </p>
             ))}
           </div>
+
+          <div className="flex items-center gap-3 mt-3">
+            <img
+              src={userData.profileImage || dp}
+              className="w-8 h-8 rounded-full"
+            />
+            <input
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Add a comment..."
+              className="flex-1 bg-transparent text-sm text-white outline-none"
+            />
+            {message && (
+              <IoSendSharp
+                onClick={handleComment}
+                className="text-blue-500 w-5 h-5 cursor-pointer"
+              />
+            )}
+          </div>
         </div>
-      }
+      )}
     </div>
-  )
+  );
 }
 
-export default Post
+export default Post;

@@ -1,13 +1,48 @@
 @import "tailwindcss";
-* {
 
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+/* ================================
+   🌑 GLOBAL RESET & SCROLL
+   ================================ */
+
+* {
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE */
 }
 
 ::-webkit-scrollbar {
-  display: none;
+  display: none;               /* Chrome, Safari */
 }
+
+/* ================================
+   🔤 INSTAGRAM-LIKE TYPOGRAPHY
+   ================================ */
+
+html {
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #0f0f0f;   /* Soft Instagram dark */
+  color: #e5e7eb;              /* Light gray text */
+}
+
+body {
+  background-color: #0f0f0f;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ================================
+   📦 GLOBAL CONTAINERS
+   ================================ */
+
+.card {
+  background-color: rgba(24, 24, 27, 0.9);
+  border: 1px solid rgba(63, 63, 70, 0.4);
+  border-radius: 14px;
+}
+
+/* ================================
+   ❤️ LIKE / HEART ANIMATION
+   ================================ */
 
 @keyframes heartPop {
   0% {
@@ -25,6 +60,23 @@
 }
 
 .heart-animation {
-  animation: heartPop 1.5s ease-out forwards;
- 
+  animation: heartPop 1.4s ease-out forwards;
+  pointer-events: none;
+}
+
+/* ================================
+   ✨ MICRO-INTERACTIONS
+   ================================ */
+
+button {
+  transition: transform 0.15s ease, background-color 0.2s ease;
+}
+
+button:active {
+  transform: scale(0.96);
+}
+
+img {
+  user-select: none;
+  -webkit-user-drag: none;
 }

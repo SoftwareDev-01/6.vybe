@@ -1,27 +1,50 @@
-import React from 'react'
-import { useSelector } from 'react-redux'
-import dp from "../assets/dp.webp"
-import { useNavigate } from 'react-router-dom'
-import FollowButton from './FollowButton'
-function OtherUser({user}) {
-    const {userData}=useSelector(state=>state.user)
-    const navigate=useNavigate()
+import React from "react";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import dp from "../assets/dp.webp";
+import FollowButton from "./FollowButton";
+
+function OtherUser({ user }) {
+  const { userData } = useSelector((state) => state.user);
+  const navigate = useNavigate();
+
   return (
-    <div className='w-full h-[80px] flex items-center justify-between border-b-2 border-gray-800' >
-       <div className='flex items-center gap-[10px]'>
-      <div className='w-[50px] h-[50px] border-2 border-black rounded-full cursor-pointer overflow-hidden' onClick={()=>navigate(`/profile/${user.userName}`)}>
-          <img src={user.profileImage || dp} alt="" className='w-full object-cover'/>
+    <div
+      className="
+        w-full flex items-center justify-between
+        py-3
+        border-b border-gray-800
+      "
+    >
+      {/* Left: Avatar + Info */}
+      <div
+        className="flex items-center gap-3 cursor-pointer"
+        onClick={() => navigate(`/profile/${user.userName}`)}
+      >
+        <div className="w-11 h-11 rounded-full overflow-hidden">
+          <img
+            src={user.profileImage || dp}
+            alt="user"
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        <div className="flex flex-col leading-tight">
+          <span className="text-sm text-white font-semibold">
+            {user.userName}
+          </span>
+          <span className="text-xs text-gray-400">
+            {user.name}
+          </span>
+        </div>
       </div>
-      <div >
-          <div className='text-[18px] text-white font-semibold '>{user.userName}</div>
-          <div className='text-[15px] text-gray-400 font-semibold '>{user.name}</div>
-      </div>
-      </div>
-      
-      <FollowButton tailwind={'px-[10px] w-[100px] py-[5px] h-[40px] bg-[white] rounded-2xl'} targetUserId={user._id}/>
-     
+
+      {/* Right: Follow Button */}
+      {userData?._id !== user._id && (
+        <FollowButton targetUserId={user._id} />
+      )}
     </div>
-  )
+  );
 }
 
-export default OtherUser
+export default OtherUser;
