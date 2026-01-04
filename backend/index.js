@@ -53,6 +53,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Simple request logger for debugging
+app.use((req, res, next) => {
+  console.log(`[REQ] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 /* ======================
    🛣️ Routes
 ====================== */
@@ -71,6 +77,13 @@ app.get("/health", (_, res) => {
     status: "OK",
     uptime: process.uptime(),
   });
+});
+
+// Global error handler — logs stack and responds with minimal message
+app.use((err, req, res, next) => {
+  console.error("[ERROR]", err && err.stack ? err.stack : err);
+  if (res.headersSent) return next(err);
+  res.status(err.status || 500).json({ message: err.message || "Internal Server Error" });
 });
 
 /* ======================
