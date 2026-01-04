@@ -6,7 +6,7 @@ import {
   sendMessage,
   getAllMessages,
   getPrevUserChats,
-  deleteMessage, // ✅ ADD
+  deleteMessage,
 } from "../controllers/message.controllers.js";
 
 const messageRouter = express.Router();
@@ -15,7 +15,7 @@ const messageRouter = express.Router();
 messageRouter.post(
   "/send/:receiverId",
   isAuth,
-  upload.single("image"),
+  upload.single("media"), // ✅ FIXED
   sendMessage
 );
 
