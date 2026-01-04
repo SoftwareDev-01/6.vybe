@@ -20,8 +20,9 @@ import {
 } from "../redux/messageSlice";
 
 function MessageArea() {
-  const { selectedUser, messages } = useSelector((s) => s.message);
-  const { prevChatUsers } = useSelector((s) => s.message);
+  const { selectedUser, messages, prevChatUsers } = useSelector(
+    (s) => s.message
+  );
   const { userData } = useSelector((s) => s.user);
   const { socket } = useSelector((s) => s.socket);
 
@@ -37,12 +38,10 @@ function MessageArea() {
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
 
-  /* ================= SAFETY ================= */
+  /* ================= AUTO SELECT CHAT ================= */
 
-  // If user reloads on /messageArea, attempt to auto-select the first prev chat
-  // so the chat UI loads instead of showing an empty state.
   useEffect(() => {
-    if (!selectedUser && Array.isArray(prevChatUsers) && prevChatUsers.length) {
+    if (!selectedUser && prevChatUsers?.length) {
       dispatch(setSelectedUser(prevChatUsers[0]));
     }
   }, [selectedUser, prevChatUsers, dispatch]);
@@ -55,7 +54,7 @@ function MessageArea() {
     );
   }
 
-  /* ================= IMAGE ================= */
+  /* ================= IMAGE HANDLER ================= */
 
   const handleImage = (e) => {
     const file = e.target.files[0];
@@ -63,6 +62,9 @@ function MessageArea() {
 
     setBackendImage(file);
     setFrontendImage(URL.createObjectURL(file));
+
+    // allow selecting same image again
+    e.target.value = "";
   };
 
   /* ================= SEND MESSAGE ================= */
@@ -113,7 +115,7 @@ function MessageArea() {
     fetchMessages();
   }, [selectedUser, dispatch]);
 
-  /* ================= SOCKET ================= */
+  /* ================= SOCKET EVENTS ================= */
 
   useEffect(() => {
     if (!socket) return;
@@ -159,6 +161,9 @@ function MessageArea() {
 
   const handleTyping = (e) => {
     setInput(e.target.value);
+
+    if (!e.target.value) return;
+
     socket?.emit("typing", { to: selectedUser._id });
 
     clearTimeout(typingTimeout.current);
@@ -177,13 +182,9 @@ function MessageArea() {
         { withCredentials: true }
       );
 
-      if (type === "me") {
-        dispatch(deleteMessageForMe(messageId));
-      }
-
-      if (type === "everyone") {
+      if (type === "me") dispatch(deleteMessageForMe(messageId));
+      if (type === "everyone")
         dispatch(deleteMessageForEveryone(messageId));
-      }
     } catch (err) {
       console.log(err);
     }
@@ -213,6 +214,7 @@ function MessageArea() {
           <img
             src={selectedUser.profileImage || dp}
             className="w-full h-full object-cover"
+            alt=""
           />
         </div>
 
@@ -252,6 +254,29 @@ function MessageArea() {
 
         <div ref={bottomRef} />
       </div>
+
+      {/* Image Preview */}
+      {frontendImage && (
+        <div className="px-4 pb-2">
+          <div className="relative w-32">
+            <img
+              src={frontendImage}
+              alt="preview"
+              className="w-32 h-32 object-cover rounded-xl border border-gray-700"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setFrontendImage(null);
+                setBackendImage(null);
+              }}
+              className="absolute -top-2 -right-2 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-xs"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Input */}
       <form
