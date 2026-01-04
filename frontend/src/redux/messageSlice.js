@@ -38,7 +38,7 @@ const messageSlice = createSlice({
       );
       if (msg) {
         msg.isDeleted = true;
-        msg.message = "";
+        msg.message = "This message was deleted";
         msg.image = "";
       }
     },

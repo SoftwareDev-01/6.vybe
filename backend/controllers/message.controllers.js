@@ -79,6 +79,7 @@ export const getAllMessages = async (req, res) => {
     const messages = await Message.find({
       _id: { $in: conversation.messages },
       deletedFor: { $nin: [userId] }, // ✅ DELETE-FOR-ME GUARANTEE
+      isDeleted: { $ne: true }, // hide messages deleted for everyone
     }).sort({ createdAt: 1 });
 
     return res.status(200).json(messages);

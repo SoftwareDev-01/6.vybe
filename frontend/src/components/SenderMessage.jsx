@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
+import dp from "../assets/dp.webp";
 import { MdDelete } from "react-icons/md";
 
 function SenderMessage({ message, onDelete }) {
@@ -96,7 +97,7 @@ function SenderMessage({ message, onDelete }) {
       {/* 👤 Avatar */}
       <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
         <img
-          src={userData.profileImage}
+          src={userData?.profileImage || dp}
           alt="me"
           className="w-full h-full object-cover"
         />
