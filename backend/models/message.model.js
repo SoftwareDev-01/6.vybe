@@ -37,10 +37,11 @@ const messageSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User", // delete for me
+        index: true,
       },
     ],
 
-    /* 👀 SEEN / DELIVERED */
+    /* 👀 MESSAGE STATUS */
     status: {
       type: String,
       enum: ["sent", "delivered", "seen"],

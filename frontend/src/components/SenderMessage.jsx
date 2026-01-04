@@ -11,10 +11,18 @@ function SenderMessage({ message, onDelete }) {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [message.message, message.image, message.isDeleted]);
 
-  /* 🗑 Deleted for everyone */
+  /* 🟡 DELETE FOR ME — HARD STOP */
+  if (message.deletedFor?.includes(userData._id)) {
+    return null;
+  }
+
+  /* 🔴 DELETE FOR EVERYONE */
   if (message.isDeleted) {
     return (
-      <div className="flex justify-end max-w-[75%] ml-auto">
+      <div
+        ref={scrollRef}
+        className="flex justify-end max-w-[75%] ml-auto"
+      >
         <p className="text-xs italic text-gray-400">
           You deleted this message
         </p>
@@ -29,17 +37,18 @@ function SenderMessage({ message, onDelete }) {
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      {/* Delete Button */}
-      {showActions && onDelete && (
+      {/* 🗑 Delete for everyone */}
+      {showActions && (
         <button
           onClick={() => onDelete(message._id, "everyone")}
           className="text-gray-400 hover:text-red-400 transition"
+          title="Delete for everyone"
         >
           <MdDelete size={16} />
         </button>
       )}
 
-      {/* Bubble */}
+      {/* 💬 Message Bubble */}
       <div
         className="
           bg-gradient-to-br from-[#7c3aed] to-[#2563eb]
@@ -65,7 +74,7 @@ function SenderMessage({ message, onDelete }) {
           </p>
         )}
 
-        {/* Timestamp + Status */}
+        {/* ⏱ Timestamp + Status */}
         <div className="flex justify-end gap-2 text-[10px] text-white/80 mt-1">
           <span>
             {new Date(message.createdAt).toLocaleTimeString([], {
@@ -84,7 +93,7 @@ function SenderMessage({ message, onDelete }) {
         </div>
       </div>
 
-      {/* Avatar */}
+      {/* 👤 Avatar */}
       <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
         <img
           src={userData.profileImage}

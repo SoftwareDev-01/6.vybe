@@ -46,23 +46,33 @@ const userSlice = createSlice({
       state.following = action.payload;
     },
 
-    /* Follow / Unfollow (Instagram-style) */
+    /* ✅ Follow / Unfollow (SAFE & CORRECT) */
     toggleFollow: (state, action) => {
       const targetUserId = action.payload;
+      const myUserId = state.userData?._id;
 
-      if (state.following.includes(targetUserId)) {
+      if (!myUserId) return;
+
+      const isFollowing = state.following.includes(targetUserId);
+
+      if (isFollowing) {
+        // UNFOLLOW
         state.following = state.following.filter(
           (id) => id !== targetUserId
         );
 
         if (state.profileData?._id === targetUserId) {
-          state.profileData.followers.pop();
+          state.profileData.followers =
+            state.profileData.followers.filter(
+              (id) => id !== myUserId
+            );
         }
       } else {
+        // FOLLOW
         state.following.push(targetUserId);
 
         if (state.profileData?._id === targetUserId) {
-          state.profileData.followers.push(state.userData);
+          state.profileData.followers.push(myUserId);
         }
       }
     },

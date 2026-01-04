@@ -52,7 +52,6 @@ export const sendMessage = async (req, res) => {
       ...newMessage._doc,
       status: receiverSocketId ? "delivered" : "sent",
     });
-
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: "Send message error" });
@@ -60,19 +59,31 @@ export const sendMessage = async (req, res) => {
 };
 
 /* ================= GET ALL MESSAGES ================= */
+/* 🔥 FINAL FIX — NO populate(), DIRECT MESSAGE QUERY */
 
 export const getAllMessages = async (req, res) => {
   try {
-    const senderId = req.user._id;
+    const userId = req.user._id;
     const receiverId = req.params.receiverId;
 
+    // 1️⃣ Find conversation
     const conversation = await Conversation.findOne({
-      participants: { $all: [senderId, receiverId] },
-    }).populate("messages");
+      participants: { $all: [userId, receiverId] },
+    });
 
-    return res.status(200).json(conversation?.messages || []);
+    if (!conversation) {
+      return res.status(200).json([]);
+    }
 
+    // 2️⃣ Fetch messages directly from Message collection
+    const messages = await Message.find({
+      _id: { $in: conversation.messages },
+      deletedFor: { $nin: [userId] }, // ✅ DELETE-FOR-ME GUARANTEE
+    }).sort({ createdAt: 1 });
+
+    return res.status(200).json(messages);
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ message: "Get messages error" });
   }
 };
@@ -100,7 +111,6 @@ export const getPrevUserChats = async (req, res) => {
     });
 
     return res.status(200).json(Object.values(userMap));
-
   } catch (error) {
     return res.status(500).json({ message: "Previous chat users error" });
   }
@@ -111,42 +121,41 @@ export const getPrevUserChats = async (req, res) => {
 export const deleteMessage = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { messageId, type } = req.body; // type = "me" | "everyone"
+    const { messageId, type } = req.body;
 
     const message = await Message.findById(messageId);
     if (!message) {
       return res.status(404).json({ message: "Message not found" });
     }
 
-    // 🔴 Delete for everyone (only sender)
+    /* 🔴 DELETE FOR EVERYONE */
     if (type === "everyone") {
       if (message.sender.toString() !== userId.toString()) {
-        return res
-          .status(403)
-          .json({ message: "Not allowed to delete for everyone" });
+        return res.status(403).json({
+          message: "Not allowed to delete for everyone",
+        });
       }
 
-      message.isDeleted = true;
-      await message.save();
+      await Message.findByIdAndUpdate(messageId, {
+        isDeleted: true,
+      });
 
       const receiverSocket = getSocketId(message.receiver);
       if (receiverSocket) {
-        io.to(receiverSocket).emit("messageDeleted", {
+        io.to(receiverSocket).emit("messageDeletedForEveryone", {
           messageId,
         });
       }
     }
 
-    // 🟡 Delete for me
+    /* 🟡 DELETE FOR ME */
     if (type === "me") {
-      if (!message.deletedFor.includes(userId)) {
-        message.deletedFor.push(userId);
-        await message.save();
-      }
+      await Message.findByIdAndUpdate(messageId, {
+        $addToSet: { deletedFor: userId },
+      });
     }
 
     return res.status(200).json({ success: true });
-
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: "Delete message failed" });

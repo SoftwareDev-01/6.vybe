@@ -11,15 +11,20 @@ function FollowButton({ targetUserId, tailwind = "", onFollowChange }) {
 
   const handleFollow = async () => {
     try {
-      await axios.get(
+      await axios.post(
         `${serverUrl}/api/user/follow/${targetUserId}`,
+        {},
         { withCredentials: true }
       );
 
-      if (onFollowChange) onFollowChange();
       dispatch(toggleFollow(targetUserId));
+      if (onFollowChange) onFollowChange();
+
     } catch (error) {
-      console.log(error);
+      console.error(
+        "FOLLOW ERROR:",
+        error.response?.data || error.message
+      );
     }
   };
 

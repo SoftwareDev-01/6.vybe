@@ -4,6 +4,7 @@ import { MdDelete } from "react-icons/md";
 
 function ReceiverMessage({ message, onDelete }) {
   const { selectedUser } = useSelector((state) => state.message);
+  const { userData } = useSelector((state) => state.user); // ✅ ADD THIS
   const scrollRef = useRef(null);
   const [showActions, setShowActions] = useState(false);
 
@@ -11,10 +12,18 @@ function ReceiverMessage({ message, onDelete }) {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [message.message, message.image, message.isDeleted]);
 
-  /* 🗑 Deleted for everyone */
+  /* 🟡 DELETE FOR ME — HARD STOP (MOST IMPORTANT FIX) */
+  if (message.deletedFor?.includes(userData._id)) {
+    return null;
+  }
+
+  /* 🔴 DELETE FOR EVERYONE */
   if (message.isDeleted) {
     return (
-      <div className="flex justify-start max-w-[75%]">
+      <div
+        ref={scrollRef}
+        className="flex justify-start max-w-[75%]"
+      >
         <p className="text-xs italic text-gray-400">
           This message was deleted
         </p>
@@ -29,7 +38,7 @@ function ReceiverMessage({ message, onDelete }) {
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      {/* Avatar */}
+      {/* 👤 Avatar */}
       <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
         <img
           src={selectedUser.profileImage}
@@ -38,7 +47,7 @@ function ReceiverMessage({ message, onDelete }) {
         />
       </div>
 
-      {/* Bubble */}
+      {/* 💬 Message Bubble */}
       <div
         className="
           relative
@@ -65,7 +74,7 @@ function ReceiverMessage({ message, onDelete }) {
           </p>
         )}
 
-        {/* Timestamp */}
+        {/* ⏱ Timestamp */}
         <div className="text-[10px] text-gray-400 text-right mt-1">
           {new Date(message.createdAt).toLocaleTimeString([], {
             hour: "2-digit",
@@ -73,8 +82,8 @@ function ReceiverMessage({ message, onDelete }) {
           })}
         </div>
 
-        {/* Delete for me */}
-        {showActions && onDelete && (
+        {/* 🗑 Delete for me */}
+        {showActions && (
           <button
             onClick={() => onDelete(message._id, "me")}
             className="
@@ -82,6 +91,7 @@ function ReceiverMessage({ message, onDelete }) {
               text-gray-400 hover:text-red-400
               transition
             "
+            title="Delete for me"
           >
             <MdDelete size={16} />
           </button>

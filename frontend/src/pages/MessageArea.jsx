@@ -10,7 +10,13 @@ import dp from "../assets/dp.webp";
 import SenderMessage from "../components/SenderMessage";
 import ReceiverMessage from "../components/ReceiverMessage";
 import { serverUrl } from "../App";
-import { setMessages } from "../redux/messageSlice";
+
+import {
+  setMessages,
+  addMessage,
+  deleteMessageForMe,
+  deleteMessageForEveryone,
+} from "../redux/messageSlice";
 
 function MessageArea() {
   const { selectedUser, messages } = useSelector((s) => s.message);
@@ -66,7 +72,7 @@ function MessageArea() {
         { withCredentials: true }
       );
 
-      dispatch(setMessages([...messages, res.data]));
+      dispatch(addMessage(res.data));
       socket?.emit("stopTyping", { to: selectedUser._id });
 
       setInput("");
@@ -103,7 +109,7 @@ function MessageArea() {
     if (!socket) return;
 
     socket.on("newMessage", (msg) => {
-      dispatch(setMessages([...messages, msg]));
+      dispatch(addMessage(msg));
 
       if (msg.sender !== userData._id) {
         socket.emit("messageSeen", {
@@ -126,14 +132,8 @@ function MessageArea() {
       );
     });
 
-    socket.on("messageDeleted", ({ messageId }) => {
-      dispatch(
-        setMessages(
-          messages.map((m) =>
-            m._id === messageId ? { ...m, isDeleted: true } : m
-          )
-        )
-      );
+    socket.on("messageDeletedForEveryone", ({ messageId }) => {
+      dispatch(deleteMessageForEveryone(messageId));
     });
 
     return () => {
@@ -141,9 +141,9 @@ function MessageArea() {
       socket.off("typing");
       socket.off("stopTyping");
       socket.off("messageSeen");
-      socket.off("messageDeleted");
+      socket.off("messageDeletedForEveryone");
     };
-  }, [socket, messages, dispatch, userData]);
+  }, [socket, dispatch, userData, messages]);
 
   /* ================= TYPING HANDLER ================= */
 
@@ -167,26 +167,12 @@ function MessageArea() {
         { withCredentials: true }
       );
 
-      dispatch(
-        setMessages(
-          messages.map((m) =>
-            m._id === messageId
-              ? type === "everyone"
-                ? { ...m, isDeleted: true }
-                : {
-                    ...m,
-                    deletedFor: [...(m.deletedFor || []), userData._id],
-                  }
-              : m
-          )
-        )
-      );
+      if (type === "me") {
+        dispatch(deleteMessageForMe(messageId));
+      }
 
       if (type === "everyone") {
-        socket?.emit("deleteMessage", {
-          messageId,
-          to: selectedUser._id,
-        });
+        dispatch(deleteMessageForEveryone(messageId));
       }
     } catch (err) {
       console.log(err);
@@ -288,11 +274,7 @@ function MessageArea() {
         {(input || frontendImage) && (
           <button
             type="submit"
-            className="
-              w-9 h-9 rounded-full
-              bg-gradient-to-br from-[#7c3aed] to-[#2563eb]
-              flex items-center justify-center
-            "
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-[#7c3aed] to-[#2563eb] flex items-center justify-center"
           >
             <IoMdSend className="text-white w-5 h-5" />
           </button>

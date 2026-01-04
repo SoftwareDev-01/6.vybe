@@ -11,7 +11,7 @@ const messageSlice = createSlice({
     /* Select chat user */
     setSelectedUser: (state, action) => {
       state.selectedUser = action.payload;
-      state.messages = []; // reset messages on switch (like Instagram)
+      state.messages = []; // reset on switch (Instagram-like)
     },
 
     /* Load full chat history */
@@ -19,12 +19,31 @@ const messageSlice = createSlice({
       state.messages = action.payload;
     },
 
-    /* Append single message (socket / send) */
+    /* Append single message */
     addMessage: (state, action) => {
       state.messages.push(action.payload);
     },
 
-    /* Previous chat users list */
+    /* 🟡 DELETE FOR ME (REMOVE FROM UI) */
+    deleteMessageForMe: (state, action) => {
+      state.messages = state.messages.filter(
+        (msg) => msg._id !== action.payload
+      );
+    },
+
+    /* 🔴 DELETE FOR EVERYONE (MARK AS DELETED) */
+    deleteMessageForEveryone: (state, action) => {
+      const msg = state.messages.find(
+        (m) => m._id === action.payload
+      );
+      if (msg) {
+        msg.isDeleted = true;
+        msg.message = "";
+        msg.image = "";
+      }
+    },
+
+    /* Previous chat users */
     setPrevChatUsers: (state, action) => {
       state.prevChatUsers = action.payload;
     },
@@ -42,6 +61,8 @@ export const {
   setSelectedUser,
   setMessages,
   addMessage,
+  deleteMessageForMe,
+  deleteMessageForEveryone,
   setPrevChatUsers,
   resetMessages,
 } = messageSlice.actions;
