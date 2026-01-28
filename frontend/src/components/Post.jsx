@@ -1,4 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   GoHeart,
   GoHeartFill,
@@ -9,7 +16,7 @@ import {
   MdOutlineBookmarkBorder,
   MdDeleteOutline,
 } from "react-icons/md";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch, useSelector, shallowEqual } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -21,62 +28,83 @@ import { setPostData } from "../redux/postSlice";
 import { setUserData } from "../redux/userSlice";
 
 function Post({ post }) {
-  const { userData } = useSelector((s) => s.user);
-  const { socket } = useSelector((s) => s.socket);
-
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const inputRef = useRef(null);
 
-  /* ================= SAFE USER ================= */
-  const safeUser = {
-    _id: userData?._id || "",
-    userName: userData?.userName || "user",
-    profileImage: userData?.profileImage || dp,
-    saved: Array.isArray(userData?.saved) ? userData.saved : [],
-  };
+  /**
+   * 🔹 Optimized selectors
+   */
+  const { userData } = useSelector(
+    (s) => ({ userData: s.user.userData }),
+    shallowEqual
+  );
 
-  /* ================= SAFE POST ================= */
-  const safePost = {
-    ...post,
-    likes: Array.isArray(post?.likes) ? post.likes : [],
-    comments: Array.isArray(post?.comments) ? post.comments : [],
-    author: {
-      _id: post?.author?._id || "",
-      userName: post?.author?.userName || "user",
-      profileImage: post?.author?.profileImage || dp,
-    },
-  };
+  const { socket } = useSelector((s) => s.socket);
+
+  /* ================= SAFE DATA ================= */
+
+  const safeUser = useMemo(
+    () => ({
+      _id: userData?._id || "",
+      userName: userData?.userName || "user",
+      profileImage: userData?.profileImage || dp,
+      saved: Array.isArray(userData?.saved) ? userData.saved : [],
+    }),
+    [userData]
+  );
+
+  const safePost = useMemo(
+    () => ({
+      ...post,
+      likes: Array.isArray(post?.likes) ? post.likes : [],
+      comments: Array.isArray(post?.comments) ? post.comments : [],
+      author: {
+        _id: post?.author?._id || "",
+        userName: post?.author?.userName || "user",
+        profileImage: post?.author?.profileImage || dp,
+      },
+    }),
+    [post]
+  );
+
+  /* ================= STATE ================= */
 
   const [showComment, setShowComment] = useState(false);
   const [message, setMessage] = useState("");
-  const inputRef = useRef(null);
 
   const isLiked = safePost.likes.includes(safeUser._id);
   const isSaved = safeUser.saved.includes(safePost._id);
 
-  /* ================= LIKE (BACKEND SOURCE OF TRUTH) ================= */
+  /* ================= HELPERS ================= */
 
-  const handleLike = async () => {
+  const updatePostInStore = useCallback(
+    (updatedPost) => {
+      dispatch(
+        setPostData((prev) =>
+          prev.map((p) => (p._id === updatedPost._id ? updatedPost : p))
+        )
+      );
+    },
+    [dispatch]
+  );
+
+  /* ================= API ================= */
+
+  const handleLike = useCallback(async () => {
     try {
       const res = await axios.post(
         `${serverUrl}/api/post/like/${safePost._id}`,
         {},
         { withCredentials: true }
       );
-
-      dispatch(
-        setPostData((prev) =>
-          prev.map((p) => (p._id === safePost._id ? res.data : p))
-        )
-      );
+      updatePostInStore(res.data);
     } catch (err) {
-      console.error("Like failed", err);
+      console.error("LIKE ERROR:", err);
     }
-  };
+  }, [safePost._id, updatePostInStore]);
 
-  /* ================= ADD COMMENT (NO FAKE ID) ================= */
-
-  const handleComment = async () => {
+  const handleComment = useCallback(async () => {
     if (!message.trim()) return;
 
     try {
@@ -85,45 +113,38 @@ function Post({ post }) {
         { message },
         { withCredentials: true }
       );
-
-      dispatch(
-        setPostData((prev) =>
-          prev.map((p) => (p._id === safePost._id ? res.data : p))
-        )
-      );
-
+      updatePostInStore(res.data);
       setMessage("");
     } catch (err) {
-      console.error("Comment failed", err);
+      console.error("COMMENT ERROR:", err);
     }
-  };
+  }, [message, safePost._id, updatePostInStore]);
 
-  /* ================= DELETE COMMENT (BACKEND RESPONSE) ================= */
+  const handleDeleteComment = useCallback(
+    async (commentId) => {
+      try {
+        const res = await axios.delete(
+          `${serverUrl}/api/post/comment/${safePost._id}/${commentId}`,
+          { withCredentials: true }
+        );
 
-  const handleDeleteComment = async (commentId) => {
-    try {
-      const res = await axios.delete(
-        `${serverUrl}/api/post/comment/${safePost._id}/${commentId}`,
-        { withCredentials: true }
-      );
-
-      dispatch(
-        setPostData((prev) =>
-          prev.map((p) =>
-            p._id === safePost._id
-              ? { ...p, comments: res.data }
-              : p
+        dispatch(
+          setPostData((prev) =>
+            prev.map((p) =>
+              p._id === safePost._id
+                ? { ...p, comments: res.data }
+                : p
+            )
           )
-        )
-      );
-    } catch (err) {
-      console.error("Delete comment failed", err);
-    }
-  };
+        );
+      } catch (err) {
+        console.error("DELETE COMMENT ERROR:", err);
+      }
+    },
+    [dispatch, safePost._id]
+  );
 
-  /* ================= SAVE ================= */
-
-  const handleSaved = async () => {
+  const handleSaved = useCallback(async () => {
     try {
       const res = await axios.post(
         `${serverUrl}/api/post/save/${safePost._id}`,
@@ -132,16 +153,16 @@ function Post({ post }) {
       );
       dispatch(setUserData(res.data));
     } catch (err) {
-      console.error("Save failed", err);
+      console.error("SAVE ERROR:", err);
     }
-  };
+  }, [dispatch, safePost._id]);
 
-  /* ================= SOCKET (REAL-TIME SYNC) ================= */
+  /* ================= SOCKET (REGISTER ONCE) ================= */
 
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("likedPost", (data) => {
+    const onLike = (data) => {
       dispatch(
         setPostData((prev) =>
           prev.map((p) =>
@@ -149,9 +170,9 @@ function Post({ post }) {
           )
         )
       );
-    });
+    };
 
-    socket.on("commentedPost", (data) => {
+    const onComment = (data) => {
       dispatch(
         setPostData((prev) =>
           prev.map((p) =>
@@ -161,11 +182,14 @@ function Post({ post }) {
           )
         )
       );
-    });
+    };
+
+    socket.on("likedPost", onLike);
+    socket.on("commentedPost", onComment);
 
     return () => {
-      socket.off("likedPost");
-      socket.off("commentedPost");
+      socket.off("likedPost", onLike);
+      socket.off("commentedPost", onComment);
     };
   }, [socket, dispatch]);
 
@@ -177,7 +201,6 @@ function Post({ post }) {
 
   return (
     <article className="w-full bg-[#0f0f0f] border border-gray-800 rounded-xl overflow-hidden">
-
       {/* HEADER */}
       <div className="flex items-center justify-between px-4 py-3">
         <div
@@ -186,7 +209,8 @@ function Post({ post }) {
         >
           <img
             src={safePost.author.profileImage}
-            className="w-9 h-9 rounded-full"
+            loading="lazy"
+            className="w-9 h-9 rounded-full object-cover"
           />
           <span className="text-sm font-semibold text-white">
             {safePost.author.userName}
@@ -201,7 +225,11 @@ function Post({ post }) {
       {/* MEDIA */}
       <div className="relative aspect-[4/5] bg-black">
         {safePost.mediaType === "image" && (
-          <img src={safePost.media} className="w-full h-full object-cover" />
+          <img
+            src={safePost.media}
+            loading="lazy"
+            className="w-full h-full object-cover"
+          />
         )}
         {safePost.mediaType === "video" && (
           <VideoPlayer media={safePost.media} />
@@ -256,8 +284,8 @@ function Post({ post }) {
 
                 {c.author?._id === safeUser._id && (
                   <MdDeleteOutline
-                    className="cursor-pointer hover:text-red-500"
                     onClick={() => handleDeleteComment(c._id)}
+                    className="cursor-pointer hover:text-red-500"
                   />
                 )}
               </div>
@@ -291,4 +319,4 @@ function Post({ post }) {
   );
 }
 
-export default Post;
+export default memo(Post);

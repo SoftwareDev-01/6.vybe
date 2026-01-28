@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useCallback } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setSelectedUser } from "../redux/messageSlice";
@@ -8,26 +8,34 @@ function OnlineUser({ user }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const handleClick = () => {
+  /**
+   * 🔹 Stable click handler
+   * Prevents re-render cascades in lists
+   */
+  const handleClick = useCallback(() => {
+    if (!user) return;
     dispatch(setSelectedUser(user));
     navigate("/messageArea");
-  };
+  }, [dispatch, navigate, user]);
 
   return (
     <div
       onClick={handleClick}
-      className="relative cursor-pointer group"
+      className="relative cursor-pointer group flex-shrink-0"
     >
       {/* Avatar */}
-      <div className="
-        w-12 h-12 rounded-full overflow-hidden
-        ring-2 ring-gray-700
-        group-hover:ring-white
-        transition
-      ">
+      <div
+        className="
+          w-12 h-12 rounded-full overflow-hidden
+          ring-2 ring-gray-700
+          group-hover:ring-white
+          transition
+        "
+      >
         <img
-          src={user.profileImage || dp}
+          src={user?.profileImage || dp}
           alt="user"
+          loading="lazy"
           className="w-full h-full object-cover"
         />
       </div>
@@ -45,4 +53,4 @@ function OnlineUser({ user }) {
   );
 }
 
-export default OnlineUser;
+export default memo(OnlineUser);

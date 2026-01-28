@@ -1,21 +1,33 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { FiVolume2, FiVolumeX } from "react-icons/fi";
 
 function VideoPlayer({ media }) {
   const videoRef = useRef(null);
+  const observerRef = useRef(null);
 
-  const [muted, setMuted] = useState(true);      // Instagram default
+  const [muted, setMuted] = useState(true); // Instagram default
   const [isPlaying, setIsPlaying] = useState(false);
-  const userPausedRef = useRef(false);           // 👈 prevents observer fight
+
+  /**
+   * 👇 Prevents IntersectionObserver from
+   * overriding explicit user pause
+   */
+  const userPausedRef = useRef(false);
 
   /* ================= USER INTERACTION ================= */
 
-  const handleTogglePlay = () => {
+  const handleTogglePlay = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
 
     if (video.paused) {
-      video.play();
+      video.play().catch(() => {});
       setIsPlaying(true);
       userPausedRef.current = false;
     } else {
@@ -23,12 +35,12 @@ function VideoPlayer({ media }) {
       setIsPlaying(false);
       userPausedRef.current = true;
     }
-  };
+  }, []);
 
-  const toggleMute = (e) => {
-    e.stopPropagation(); // 👈 don't trigger play/pause
+  const toggleMute = useCallback((e) => {
+    e.stopPropagation(); // prevent play/pause toggle
     setMuted((prev) => !prev);
-  };
+  }, []);
 
   /* ================= VIEWPORT AUTOPLAY ================= */
 
@@ -36,12 +48,16 @@ function VideoPlayer({ media }) {
     const video = videoRef.current;
     if (!video) return;
 
-    const observer = new IntersectionObserver(
+    observerRef.current = new IntersectionObserver(
       ([entry]) => {
+        if (!video) return;
+
         if (entry.isIntersecting) {
+          // 👇 only auto-play if user didn't pause manually
           if (!userPausedRef.current) {
-            video.play();
-            setIsPlaying(true);
+            video.play().then(() => {
+              setIsPlaying(true);
+            }).catch(() => {});
           }
         } else {
           video.pause();
@@ -51,9 +67,11 @@ function VideoPlayer({ media }) {
       { threshold: 0.6 }
     );
 
-    observer.observe(video);
+    observerRef.current.observe(video);
 
-    return () => observer.disconnect();
+    return () => {
+      observerRef.current?.disconnect();
+    };
   }, []);
 
   /* ================= UI ================= */
@@ -64,7 +82,7 @@ function VideoPlayer({ media }) {
       className="
         relative w-full h-full
         bg-black overflow-hidden
-        group cursor-pointer
+        cursor-pointer group
       "
     >
       {/* 🎥 VIDEO */}
@@ -78,7 +96,7 @@ function VideoPlayer({ media }) {
         className="absolute inset-0 w-full h-full object-cover"
       />
 
-      {/* ▶️ PLAY OVERLAY (Instagram style) */}
+      {/* ▶️ PLAY OVERLAY */}
       {!isPlaying && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/40">
           <span className="text-white text-sm font-semibold">
@@ -98,6 +116,7 @@ function VideoPlayer({ media }) {
           opacity-80 hover:opacity-100
           transition
         "
+        aria-label="Toggle sound"
       >
         {muted ? (
           <FiVolumeX className="w-5 h-5" />
@@ -109,4 +128,4 @@ function VideoPlayer({ media }) {
   );
 }
 
-export default VideoPlayer;
+export default memo(VideoPlayer);

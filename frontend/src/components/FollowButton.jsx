@@ -1,15 +1,38 @@
 import axios from "axios";
-import React from "react";
-import { useDispatch, useSelector } from "react-redux";
+import React, { memo, useCallback, useMemo, useState } from "react";
+import { useDispatch, useSelector, shallowEqual } from "react-redux";
 import { serverUrl } from "../App";
 import { toggleFollow } from "../redux/userSlice";
 
 function FollowButton({ targetUserId, tailwind = "", onFollowChange }) {
-  const { following } = useSelector((state) => state.user);
-  const isFollowing = following.includes(targetUserId);
   const dispatch = useDispatch();
+  const [loading, setLoading] = useState(false);
 
-  const handleFollow = async () => {
+  /**
+   * 🔹 Optimized selector
+   * Only re-renders when `following` actually changes
+   */
+  const following = useSelector(
+    (state) => state.user.following,
+    shallowEqual
+  );
+
+  /**
+   * 🔹 Memoized follow check
+   * Important when many buttons exist (feed, suggestions)
+   */
+  const isFollowing = useMemo(() => {
+    return following.includes(targetUserId);
+  }, [following, targetUserId]);
+
+  /**
+   * 🔹 Stable handler (prevents re-renders of children)
+   */
+  const handleFollow = useCallback(async () => {
+    if (loading) return;
+
+    setLoading(true);
+
     try {
       await axios.post(
         `${serverUrl}/api/user/follow/${targetUserId}`,
@@ -18,33 +41,59 @@ function FollowButton({ targetUserId, tailwind = "", onFollowChange }) {
       );
 
       dispatch(toggleFollow(targetUserId));
-      if (onFollowChange) onFollowChange();
+      onFollowChange?.();
 
     } catch (error) {
       console.error(
         "FOLLOW ERROR:",
         error.response?.data || error.message
       );
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [loading, targetUserId, dispatch, onFollowChange]);
 
   return (
     <button
       onClick={handleFollow}
+      disabled={loading}
       className={`
-        px-4 py-1.5 text-sm font-semibold rounded-full transition
+        min-w-[96px]
+        px-4 py-1.5 sm:py-2
+        text-sm font-semibold
+        rounded-full
+        transition-all duration-200
+        flex items-center justify-center
+        select-none
         ${
           isFollowing
-            ? "bg-transparent border border-gray-600 text-gray-200 hover:bg-gray-800"
-            : "bg-blue-500 text-white hover:bg-blue-600"
+            ? `
+              bg-white/5
+              border border-white/15
+              text-gray-200
+              hover:bg-white/10
+            `
+            : `
+              bg-blue-500
+              text-white
+              hover:bg-blue-600
+            `
         }
-        active:scale-95
+        ${loading ? "opacity-70 cursor-not-allowed" : "active:scale-95"}
         ${tailwind}
       `}
     >
-      {isFollowing ? "Following" : "Follow"}
+      {loading ? (
+        <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+      ) : (
+        isFollowing ? "Following" : "Follow"
+      )}
     </button>
   );
 }
 
-export default FollowButton;
+/**
+ * 🔹 Memo export
+ * CRUCIAL when used inside lists (posts, users, suggestions)
+ */
+export default memo(FollowButton);

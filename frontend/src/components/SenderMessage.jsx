@@ -1,24 +1,52 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useSelector } from "react-redux";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useSelector, shallowEqual } from "react-redux";
 import dp from "../assets/dp.webp";
 import { MdDelete } from "react-icons/md";
 
 function SenderMessage({ message, onDelete }) {
-  const { userData } = useSelector((state) => state.user);
   const scrollRef = useRef(null);
   const [showActions, setShowActions] = useState(false);
 
+  /**
+   * 🔹 Optimized selector
+   * Only re-renders when user id or avatar changes
+   */
+  const currentUser = useSelector(
+    (state) => ({
+      id: state.user.userData?._id,
+      profileImage: state.user.userData?.profileImage,
+    }),
+    shallowEqual
+  );
+
+  /**
+   * 🔹 Scroll only when content actually changes
+   */
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [message.message, message.image, message.isDeleted]);
+  }, [message._id, message.message, message.image, message.isDeleted]);
+
+  /**
+   * 🔹 Derived delete states
+   */
+  const isDeletedForMe = useMemo(() => {
+    return message.deletedFor?.includes(currentUser.id);
+  }, [message.deletedFor, currentUser.id]);
+
+  const isDeletedForEveryone = message.isDeleted;
 
   /* 🟡 DELETE FOR ME — HARD STOP */
-  if (message.deletedFor?.includes(userData._id)) {
-    return null;
-  }
+  if (isDeletedForMe) return null;
 
   /* 🔴 DELETE FOR EVERYONE */
-  if (message.isDeleted) {
+  if (isDeletedForEveryone) {
     return (
       <div
         ref={scrollRef}
@@ -31,17 +59,46 @@ function SenderMessage({ message, onDelete }) {
     );
   }
 
+  /**
+   * 🔹 Stable handlers
+   */
+  const showDelete = useCallback(() => {
+    setShowActions(true);
+  }, []);
+
+  const hideDelete = useCallback(() => {
+    setShowActions(false);
+  }, []);
+
+  const handleDeleteForEveryone = useCallback(() => {
+    onDelete?.(message._id, "everyone");
+  }, [onDelete, message._id]);
+
+  /**
+   * 🔹 Memoized status label
+   */
+  const statusLabel = useMemo(() => {
+    switch (message.status) {
+      case "seen":
+        return "Seen";
+      case "delivered":
+        return "Delivered";
+      default:
+        return "Sent";
+    }
+  }, [message.status]);
+
   return (
     <div
       ref={scrollRef}
       className="flex justify-end items-end gap-2 max-w-[75%] ml-auto"
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
+      onMouseEnter={showDelete}
+      onMouseLeave={hideDelete}
     >
       {/* 🗑 Delete for everyone */}
       {showActions && (
         <button
-          onClick={() => onDelete(message._id, "everyone")}
+          onClick={handleDeleteForEveryone}
           className="text-gray-400 hover:text-red-400 transition"
           title="Delete for everyone"
         >
@@ -65,6 +122,7 @@ function SenderMessage({ message, onDelete }) {
           <img
             src={message.image}
             alt="sent"
+            loading="lazy"
             className="max-h-[220px] rounded-xl object-cover"
           />
         )}
@@ -83,22 +141,16 @@ function SenderMessage({ message, onDelete }) {
               minute: "2-digit",
             })}
           </span>
-
-          <span>
-            {message.status === "seen"
-              ? "Seen"
-              : message.status === "delivered"
-              ? "Delivered"
-              : "Sent"}
-          </span>
+          <span>{statusLabel}</span>
         </div>
       </div>
 
       {/* 👤 Avatar */}
       <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
         <img
-          src={userData?.profileImage || dp}
+          src={currentUser.profileImage || dp}
           alt="me"
+          loading="lazy"
           className="w-full h-full object-cover"
         />
       </div>
@@ -106,4 +158,4 @@ function SenderMessage({ message, onDelete }) {
   );
 }
 
-export default SenderMessage;
+export default memo(SenderMessage);

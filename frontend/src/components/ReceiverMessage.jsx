@@ -1,25 +1,57 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useSelector } from "react-redux";
+import React, {
+  memo,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
+import { useSelector, shallowEqual } from "react-redux";
 import dp from "../assets/dp.webp";
 import { MdDelete } from "react-icons/md";
 
 function ReceiverMessage({ message, onDelete }) {
-  const { selectedUser } = useSelector((state) => state.message);
-  const { userData } = useSelector((state) => state.user); // ✅ ADD THIS
   const scrollRef = useRef(null);
   const [showActions, setShowActions] = useState(false);
 
+  /**
+   * 🔹 Optimized selectors
+   */
+  const selectedUserImage = useSelector(
+    (state) => state.message.selectedUser?.profileImage,
+    shallowEqual
+  );
+
+  const currentUserId = useSelector(
+    (state) => state.user.userData?._id,
+    shallowEqual
+  );
+
+  /**
+   * 🔹 Scroll into view only when message actually changes
+   */
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [message.message, message.image, message.isDeleted]);
+  }, [message._id, message.message, message.image, message.isDeleted]);
 
-  /* 🟡 DELETE FOR ME — HARD STOP (MOST IMPORTANT FIX) */
-  if (message.deletedFor?.includes(userData._id)) {
-    return null;
-  }
+  /**
+   * 🔹 Derived states
+   */
+  const isDeletedForMe = useMemo(() => {
+    return message.deletedFor?.includes(currentUserId);
+  }, [message.deletedFor, currentUserId]);
 
-  /* 🔴 DELETE FOR EVERYONE */
-  if (message.isDeleted) {
+  const isDeletedForEveryone = message.isDeleted;
+
+  /**
+   * 🟡 DELETE FOR ME — HARD STOP
+   */
+  if (isDeletedForMe) return null;
+
+  /**
+   * 🔴 DELETE FOR EVERYONE
+   */
+  if (isDeletedForEveryone) {
     return (
       <div
         ref={scrollRef}
@@ -32,18 +64,34 @@ function ReceiverMessage({ message, onDelete }) {
     );
   }
 
+  /**
+   * 🔹 Stable handlers
+   */
+  const showDelete = useCallback(() => {
+    setShowActions(true);
+  }, []);
+
+  const hideDelete = useCallback(() => {
+    setShowActions(false);
+  }, []);
+
+  const handleDeleteForMe = useCallback(() => {
+    onDelete?.(message._id, "me");
+  }, [onDelete, message._id]);
+
   return (
     <div
       ref={scrollRef}
       className="flex items-end gap-2 max-w-[75%]"
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
+      onMouseEnter={showDelete}
+      onMouseLeave={hideDelete}
     >
       {/* 👤 Avatar */}
       <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
         <img
-          src={selectedUser?.profileImage || dp}
+          src={selectedUserImage || dp}
           alt="user"
+          loading="lazy"
           className="w-full h-full object-cover"
         />
       </div>
@@ -65,6 +113,7 @@ function ReceiverMessage({ message, onDelete }) {
           <img
             src={message.image}
             alt="message"
+            loading="lazy"
             className="max-h-[220px] rounded-xl object-cover"
           />
         )}
@@ -86,7 +135,7 @@ function ReceiverMessage({ message, onDelete }) {
         {/* 🗑 Delete for me */}
         {showActions && (
           <button
-            onClick={() => onDelete(message._id, "me")}
+            onClick={handleDeleteForMe}
             className="
               absolute -right-7 top-2
               text-gray-400 hover:text-red-400
@@ -102,4 +151,4 @@ function ReceiverMessage({ message, onDelete }) {
   );
 }
 
-export default ReceiverMessage;
+export default memo(ReceiverMessage);

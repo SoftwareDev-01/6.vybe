@@ -1,5 +1,10 @@
-import React from "react";
-import Messages from "../pages/Messages";
+import React, { memo, lazy, Suspense } from "react";
+
+/**
+ * 🔹 Lazy load Messages
+ * Prevents heavy chat UI from loading unless needed
+ */
+const Messages = lazy(() => import("../pages/Messages"));
 
 function RightHome() {
   return (
@@ -15,10 +20,18 @@ function RightHome() {
     >
       {/* Messages scroll internally */}
       <div className="flex-1 overflow-y-auto">
-        <Messages />
+        <Suspense
+          fallback={
+            <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+              Loading messages…
+            </div>
+          }
+        >
+          <Messages />
+        </Suspense>
       </div>
     </aside>
   );
 }
 
-export default RightHome;
+export default memo(RightHome);

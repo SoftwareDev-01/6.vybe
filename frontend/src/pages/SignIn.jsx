@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { memo, useCallback, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
@@ -20,8 +20,12 @@ function SignIn() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  const handleSignIn = async () => {
-    if (!userName || !password) return;
+  /**
+   * 🔹 Submit handler
+   */
+  const handleSignIn = useCallback(async () => {
+    if (!userName || !password || loading) return;
+
     setLoading(true);
     setErr("");
 
@@ -31,21 +35,30 @@ function SignIn() {
         { userName, password },
         { withCredentials: true }
       );
+
       dispatch(setUserData(res.data));
     } catch (error) {
       setErr(error.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }
-  };
+  }, [userName, password, loading, dispatch]);
+
+  /**
+   * 🔹 Enter key support
+   */
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (e.key === "Enter") handleSignIn();
+    },
+    [handleSignIn]
+  );
 
   return (
     <div className="min-h-screen w-full flex bg-[#0f0f0f] text-white overflow-hidden">
 
       {/* ================= LEFT HALF ================= */}
       <div className="hidden lg:flex w-1/2 min-h-screen flex-col px-20 py-16">
-
-        {/* Logo + Text */}
         <div>
           <img src={logo} alt="Logo" className="w-14 mb-14" />
 
@@ -57,29 +70,27 @@ function SignIn() {
           </h1>
         </div>
 
-        {/* IMAGE — resized only (NO SCROLL) */}
         <div className="flex-1 flex items-center justify-center">
-                  <div className="relative w-full max-w-[480px] rounded-2xl overflow-hidden group">
-                    <img
-                      src={promoImage}
-                      alt="Promo"
-                      className="
-                        w-full h-full
-                        max-h-[48vh]
-                        object-cover
-                        transition-transform duration-700 ease-out
-                        group-hover:scale-105
-                      "
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
-                  </div>
-                </div>
-              </div>
-        
+          <div className="relative w-full max-w-[480px] rounded-2xl overflow-hidden group">
+            <img
+              src={promoImage}
+              alt="Promo"
+              loading="lazy"
+              className="
+                w-full h-full
+                max-h-[48vh]
+                object-cover
+                transition-transform duration-700 ease-out
+                group-hover:scale-105
+              "
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
+          </div>
+        </div>
+      </div>
 
       {/* ================= RIGHT HALF ================= */}
       <div className="w-full lg:w-1/2 min-h-screen flex flex-col px-20 py-16">
-
         <div className="max-w-[520px]">
 
           <h2 className="text-[22px] font-medium mb-10">
@@ -98,6 +109,7 @@ function SignIn() {
               placeholder="Mobile number, username or email"
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="
                 w-full h-[56px] px-6
                 bg-[#0f1419]
@@ -116,6 +128,7 @@ function SignIn() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="
                   w-full h-[56px] px-6 pr-16
                   bg-[#0f1419]
@@ -128,10 +141,15 @@ function SignIn() {
                 "
               />
               <button
-                onClick={() => setShowPassword(!showPassword)}
+                type="button"
+                onClick={() => setShowPassword((p) => !p)}
                 className="absolute right-6 top-1/2 -translate-y-1/2 text-[#71767b]"
               >
-                {showPassword ? <IoIosEyeOff size={22} /> : <IoIosEye size={22} />}
+                {showPassword ? (
+                  <IoIosEyeOff size={22} />
+                ) : (
+                  <IoIosEye size={22} />
+                )}
               </button>
             </div>
           </div>
@@ -147,10 +165,13 @@ function SignIn() {
               hover:bg-[#1a8cd8]
               transition
               disabled:opacity-60
-              cursor-pointer
             "
           >
-            {loading ? <ClipLoader size={22} color="white" /> : "Log in"}
+            {loading ? (
+              <ClipLoader size={22} color="white" />
+            ) : (
+              "Log in"
+            )}
           </button>
 
           <div className="mt-7">
@@ -159,7 +180,6 @@ function SignIn() {
               className="
                 text-[16px]
                 text-[#1d9bf0]
-                cursor-pointer
                 hover:text-[#1a8cd8]
                 transition
               "
@@ -182,7 +202,6 @@ function SignIn() {
               rounded-full
               text-[16px]
               font-medium
-              cursor-pointer
               hover:bg-[#1a1a1a]
               transition
             "
@@ -193,11 +212,10 @@ function SignIn() {
           <div className="mt-14 flex justify-center text-[12px] text-[#71767b]">
             © 2026 Meta
           </div>
-
         </div>
       </div>
     </div>
   );
 }
 
-export default SignIn;
+export default memo(SignIn);

@@ -1,7 +1,22 @@
-import React from "react";
+import React, { memo, useCallback, useMemo } from "react";
 
 function ProfilePostGrid({ posts = [], onPostClick }) {
-  if (!posts.length) {
+  /**
+   * 🔹 Stable click handler
+   */
+  const handlePostClick = useCallback(
+    (post) => {
+      onPostClick?.(post);
+    },
+    [onPostClick]
+  );
+
+  /**
+   * 🔹 Memoized empty state
+   */
+  const isEmpty = useMemo(() => posts.length === 0, [posts.length]);
+
+  if (isEmpty) {
     return (
       <div className="py-20 text-center text-gray-400 text-sm">
         No posts yet
@@ -14,13 +29,16 @@ function ProfilePostGrid({ posts = [], onPostClick }) {
       {posts.map((post) => (
         <div
           key={post._id}
-          onClick={() => onPostClick(post)}
-          className="relative aspect-square bg-black cursor-pointer overflow-hidden"
+          onClick={() => handlePostClick(post)}
+          className="
+            relative aspect-square bg-black cursor-pointer overflow-hidden
+            hover:opacity-90 transition
+          "
         >
           {post.mediaType === "image" && (
             <img
               src={post.media}
-              alt=""
+              alt="post"
               loading="lazy"
               className="absolute inset-0 w-full h-full object-cover"
             />
@@ -30,6 +48,7 @@ function ProfilePostGrid({ posts = [], onPostClick }) {
             <video
               src={post.media}
               muted
+              playsInline
               preload="metadata"
               className="absolute inset-0 w-full h-full object-cover"
             />
@@ -40,4 +59,4 @@ function ProfilePostGrid({ posts = [], onPostClick }) {
   );
 }
 
-export default ProfilePostGrid;
+export default memo(ProfilePostGrid);

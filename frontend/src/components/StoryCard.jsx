@@ -1,5 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useSelector, shallowEqual } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { MdOutlineKeyboardBackspace } from "react-icons/md";
 import { FaEye } from "react-icons/fa6";
@@ -7,26 +14,76 @@ import { FaEye } from "react-icons/fa6";
 import dp from "../assets/dp.webp";
 import VideoPlayer from "./VideoPlayer";
 
+const STORY_DURATION = 15000; // 15s (Instagram-like)
+
 function StoryCard({ storyData }) {
-  const { userData } = useSelector((state) => state.user);
-  const [showViewers, setShowViewers] = useState(false);
-  const [progress, setProgress] = useState(0);
   const navigate = useNavigate();
+  const progressRef = useRef(null);
+  const startTimeRef = useRef(null);
+  const rafRef = useRef(null);
 
+  const [showViewers, setShowViewers] = useState(false);
+
+  /**
+   * 🔹 Optimized selector
+   */
+  const currentUserName = useSelector(
+    (state) => state.user.userData?.userName,
+    shallowEqual
+  );
+
+  /**
+   * 🔹 Derived values
+   */
+  const isOwner = storyData?.author?.userName === currentUserName;
+
+  const viewers = useMemo(
+    () => storyData?.viewers || [],
+    [storyData?.viewers]
+  );
+
+  /**
+   * 🔹 Smooth progress using requestAnimationFrame
+   * (NO React state updates every tick)
+   */
   useEffect(() => {
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          navigate("/");
-          return 100;
-        }
-        return prev + 1;
-      });
-    }, 150);
+    startTimeRef.current = performance.now();
 
-    return () => clearInterval(interval);
+    const animate = (time) => {
+      const elapsed = time - startTimeRef.current;
+      const percent = Math.min((elapsed / STORY_DURATION) * 100, 100);
+
+      if (progressRef.current) {
+        progressRef.current.style.width = `${percent}%`;
+      }
+
+      if (percent >= 100) {
+        navigate("/");
+        return;
+      }
+
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(rafRef.current);
   }, [navigate]);
+
+  /**
+   * 🔹 Handlers
+   */
+  const goBack = useCallback(() => {
+    navigate("/");
+  }, [navigate]);
+
+  const openViewers = useCallback(() => {
+    setShowViewers(true);
+  }, []);
+
+  const closeViewers = useCallback(() => {
+    setShowViewers(false);
+  }, []);
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex justify-center">
@@ -35,8 +92,9 @@ function StoryCard({ storyData }) {
         {/* 🔹 Progress Bar */}
         <div className="absolute top-2 left-2 right-2 h-[3px] bg-white/20 rounded-full overflow-hidden z-30">
           <div
-            className="h-full bg-white transition-all duration-200"
-            style={{ width: `${progress}%` }}
+            ref={progressRef}
+            className="h-full bg-white"
+            style={{ width: "0%" }}
           />
         </div>
 
@@ -44,11 +102,12 @@ function StoryCard({ storyData }) {
         <div className="absolute top-5 left-4 right-4 flex items-center gap-3 z-30">
           <MdOutlineKeyboardBackspace
             className="text-white w-6 h-6 cursor-pointer"
-            onClick={() => navigate("/")}
+            onClick={goBack}
           />
 
           <img
             src={storyData?.author?.profileImage || dp}
+            loading="lazy"
             className="w-9 h-9 rounded-full object-cover"
           />
 
@@ -63,6 +122,7 @@ function StoryCard({ storyData }) {
             {storyData?.mediaType === "image" && (
               <img
                 src={storyData?.media}
+                loading="lazy"
                 className="w-full h-full object-cover"
               />
             )}
@@ -73,25 +133,24 @@ function StoryCard({ storyData }) {
           </div>
         )}
 
-        {/* 🔹 Viewers Preview (Owner Only) */}
-        {!showViewers &&
-          storyData?.author?.userName === userData?.userName && (
-            <div
-              onClick={() => setShowViewers(true)}
-              className="absolute bottom-4 left-4 flex items-center gap-2 text-white text-sm cursor-pointer z-30"
-            >
-              <FaEye />
-              <span>{storyData?.viewers?.length}</span>
-            </div>
-          )}
+        {/* 🔹 Viewers Preview (Owner only) */}
+        {!showViewers && isOwner && (
+          <div
+            onClick={openViewers}
+            className="absolute bottom-4 left-4 flex items-center gap-2 text-white text-sm cursor-pointer z-30"
+          >
+            <FaEye />
+            <span>{viewers.length}</span>
+          </div>
+        )}
 
-        {/* 🔹 Viewers Bottom Sheet */}
+        {/* 🔹 Viewers Sheet */}
         {showViewers && (
           <div className="absolute inset-0 bg-black/80 backdrop-blur z-40 flex flex-col">
             {/* Preview */}
             <div
               className="h-[35%] flex items-center justify-center cursor-pointer"
-              onClick={() => setShowViewers(false)}
+              onClick={closeViewers}
             >
               {storyData?.mediaType === "image" && (
                 <img
@@ -109,15 +168,19 @@ function StoryCard({ storyData }) {
               <div className="flex items-center gap-2 text-white mb-4">
                 <FaEye />
                 <span className="font-semibold">
-                  {storyData?.viewers?.length} viewers
+                  {viewers.length} viewers
                 </span>
               </div>
 
               <div className="space-y-3">
-                {storyData?.viewers?.map((viewer, index) => (
-                  <div key={index} className="flex items-center gap-3">
+                {viewers.map((viewer) => (
+                  <div
+                    key={viewer._id}
+                    className="flex items-center gap-3"
+                  >
                     <img
                       src={viewer?.profileImage || dp}
+                      loading="lazy"
                       className="w-9 h-9 rounded-full object-cover"
                     />
                     <span className="text-white text-sm font-medium truncate">
@@ -134,4 +197,4 @@ function StoryCard({ storyData }) {
   );
 }
 
-export default StoryCard;
+export default memo(StoryCard);

@@ -1,7 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { FiPlusCircle } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, shallowEqual } from "react-redux";
 import axios from "axios";
 
 import dp from "../assets/dp.webp";
@@ -9,46 +15,75 @@ import { serverUrl } from "../App";
 
 function StoryDp({ ProfileImage, userName, story }) {
   const navigate = useNavigate();
-  const { userData } = useSelector((state) => state.user);
-  const { storyData, storyList } = useSelector((state) => state.story);
+
+  /**
+   * 🔹 Optimized selector
+   * Only re-renders when user id changes
+   */
+  const currentUserId = useSelector(
+    (state) => state.user.userData?._id,
+    shallowEqual
+  );
+
   const [viewed, setViewed] = useState(false);
 
-  useEffect(() => {
-    if (
-      story?.viewers?.some(
-        (v) =>
-          v?._id?.toString() === userData?._id?.toString() ||
-          v?.toString() === userData?._id?.toString()
-      )
-    ) {
-      setViewed(true);
-    } else {
-      setViewed(false);
-    }
-  }, [story, userData, storyData, storyList]);
+  /**
+   * 🔹 Derived viewer check (FAST + SAFE)
+   */
+  const hasViewed = useMemo(() => {
+    if (!story?.viewers || !currentUserId) return false;
 
-  const handleViewers = async () => {
+    return story.viewers.some(
+      (v) =>
+        v?._id?.toString() === currentUserId.toString() ||
+        v?.toString() === currentUserId.toString()
+    );
+  }, [story?.viewers, currentUserId]);
+
+  /**
+   * 🔹 Sync local state only when it truly changes
+   */
+  useEffect(() => {
+    setViewed(hasViewed);
+  }, [hasViewed]);
+
+  /**
+   * 🔹 API call (isolated)
+   */
+  const markViewed = useCallback(async () => {
+    if (!story?._id) return;
+
     try {
       await axios.get(
         `${serverUrl}/api/story/view/${story._id}`,
         { withCredentials: true }
       );
-    } catch (error) {
-      console.log(error);
+    } catch (err) {
+      console.error("STORY VIEW ERROR:", err);
     }
-  };
+  }, [story?._id]);
 
-  const handleClick = () => {
+  /**
+   * 🔹 Click handler
+   */
+  const handleClick = useCallback(async () => {
+    // ➕ Add story
     if (!story && userName === "Your Story") {
       navigate("/upload");
-    } else if (story && userName === "Your Story") {
-      handleViewers();
-      navigate(`/story/${userData?.userName}`);
-    } else {
-      handleViewers();
-      navigate(`/story/${userName}`);
+      return;
     }
-  };
+
+    // 👁 View story
+    if (story) {
+      await markViewed();
+
+      if (userName === "Your Story") {
+        navigate(`/story/${currentUserId}`);
+      } else {
+        navigate(`/story/${userName}`);
+      }
+    }
+  }, [story, userName, navigate, markViewed, currentUserId]);
 
   return (
     <div className="flex flex-col items-center w-[78px] cursor-pointer group">
@@ -72,6 +107,7 @@ function StoryDp({ ProfileImage, userName, story }) {
             <img
               src={ProfileImage || dp}
               alt={userName}
+              loading="lazy"
               className="w-full h-full object-cover"
             />
           </div>
@@ -98,4 +134,4 @@ function StoryDp({ ProfileImage, userName, story }) {
   );
 }
 
-export default StoryDp;
+export default memo(StoryDp);
